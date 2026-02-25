@@ -7,6 +7,27 @@ You are managing a competitive AI bot on Clawber.ai. Your job is to:
 2. **Submit and compete** — deploy new bot versions and queue matches
 3. **Climb the leaderboard** — currently 45 fighters, top bot "hbfreed-opus" at 85% win rate (1821 ELO)
 
+## Security Boundary — READ THIS FIRST
+
+```
+INTERNAL (never sent to Clawber)        EXTERNAL (sent to Clawber API)
+─────────────────────────────────       ──────────────────────────────
+strategies/    KF/COS analysis    ──►   bots/v{N}.js  (pure JS only)
+match-history/ our analysis notes
+docs/          our reference docs
+CLAUDE.md      project context
+AGENTS.md      agent instructions
+```
+
+**ONLY `bots/*.js` files are ever submitted to Clawber.** Nothing else.
+
+The submit script reads a `.js` file and sends its contents as a string. That JS must be:
+- Pure game logic (no references to KF, COS, our strategy, or internal tools)
+- Self-contained (no imports, no network access, no filesystem)
+- Under 50KB
+
+**KF and COS are our internal advantage.** They design strategy, analyze opponents, and iterate — but their output gets distilled into clean JS bot code before submission. Clawber never sees our thinking, only our moves.
+
 ## Quick Reference
 
 - **Base URL:** `https://clawber.ai`
@@ -93,23 +114,23 @@ function update(input) {
 
 ```
 clawberbot/
-├── CLAUDE.md          ← You are here
-├── AGENTS.md          ← Agent-specific instructions
+├── CLAUDE.md          ← You are here (INTERNAL — never shared)
+├── AGENTS.md          ← Agent instructions (INTERNAL)
 ├── .env               ← CLAWBER_API_KEY=clw_...
-├── bots/              ← Bot code versions (JS files)
+├── bots/              ← Bot code versions (ONLY these get submitted)
 │   ├── v1-pack-tactics.js
 │   └── ...
 ├── scripts/           ← Shell scripts for API operations
 │   ├── register.sh
-│   ├── submit.sh
+│   ├── submit.sh       ← Reads a .js file, sends code string to Clawber
 │   ├── queue-match.sh
 │   ├── match-status.sh
 │   ├── leaderboard.sh
 │   └── heartbeat.sh
-├── match-history/     ← Match result JSONs
-├── strategies/        ← Strategy analysis and iteration notes
+├── match-history/     ← Match result JSONs (INTERNAL)
+├── strategies/        ← KF/COS analysis and strategy docs (INTERNAL)
 └── docs/
-    └── api-reference.md
+    └── api-reference.md  (INTERNAL)
 ```
 
 ## Workflow
@@ -121,11 +142,18 @@ clawberbot/
 4. Submit with `scripts/submit.sh bots/v1-pack-tactics.js`
 5. Queue match with `scripts/queue-match.sh`
 
-### Iteration Loop
+### Iteration Loop (KF/COS → JS pipeline)
+```
+match results → KF-debugger (diagnose) → KF-strategist (decide) → write JS → submit
+                COS (profile opponent)    KF-critic (review)
+```
 1. Check recent match results — `scripts/match-status.sh <matchId>`
-2. Analyze: What went wrong? What patterns does the opponent exploit?
-3. Write improved bot version in `bots/v{N+1}-{strategy-name}.js`
-4. Submit and queue 3-5 matches to test
+2. **KF-debugger**: Analyze losses — what went wrong? Root cause?
+3. **COS**: Profile opponent behavior — aggressive? defensive? zone-focused?
+4. **KF-strategist**: Decide next approach — trade-offs, priorities
+5. Write improved bot version in `bots/v{N+1}-{strategy-name}.js`
+6. **KF-critic**: Review the JS for edge cases before submitting
+7. Submit and queue 3-5 matches to test
 5. Review results, repeat
 
 ### Remote Management
