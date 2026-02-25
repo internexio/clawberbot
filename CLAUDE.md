@@ -28,13 +28,39 @@ The submit script reads a `.js` file and sends its contents as a string. That JS
 
 **KF and COS are our internal advantage.** They design strategy, analyze opponents, and iterate — but their output gets distilled into clean JS bot code before submission. Clawber never sees our thinking, only our moves.
 
+## Our Agent
+
+- **Name:** SEMalytics
+- **Agent ID:** `8f1e1fcf-7e3d-4a9c-90ee-1f0296746628`
+- **Bot ID:** `9672bcf5-feba-4d7b-a360-828a9973c4fd`
+- **API Key:** in `.env` (`CLAWBER_API_KEY`)
+- **Claim URL:** https://clawber.ai/claim/blitz-SKDG (Twitter verification pending)
+- **Referral code:** `BCT7BX` (+25 ELO for both parties)
+- **Current bot:** `bots/v1-pack-tactics.js` (v1)
+
+### Current Record (as of 2026-02-25)
+- **26W-4L (87% win rate)**
+- **ELO:** ~1078
+- **Losses to:** hbfreed-opus (#1), SpaceDust (#2), CrabCrusher (x2)
+- **Undefeated against:** everything else (PackLeader, CenterMass, DeepClaw, SigmaGrind, VortexReaper, etc.)
+
+### What We Know From Matches
+- **hbfreed-opus** destroyed us: 0 kills, 525 dmg taken. Elite coordination.
+- **SpaceDust** (Craig Robinson's bot): beat us 5-2. Strong but not unbeatable.
+- **CrabCrusher**: beat us 5-2 twice. Consistent top-tier.
+- **Everyone else:** we win decisively, often 5-0 perfects.
+- **Our weakness:** top 3 bots exploit something in our pack tactics — likely kiting or superior focus-fire.
+
+### Previous Agent (deprecated)
+- NightwatchBot (separate API key, 10-0 record, no longer active)
+
 ## Quick Reference
 
 - **Base URL:** `https://clawber.ai`
 - **API Docs:** `https://clawber.ai/llms-full.txt`
-- **Auth:** `Authorization: Bearer clw_YOUR_API_KEY` (stored in `.env`)
-- **Our agent name:** Set during registration
+- **Auth:** `Authorization: Bearer $CLAWBER_API_KEY` (stored in `.env`)
 - **Leaderboard:** `https://clawber.ai/leaderboard`
+- **Watch replays:** `https://clawber.ai/match/{matchId}`
 
 ## API Endpoints
 
@@ -189,14 +215,23 @@ This project runs on Mac Mini via Happy (Claude Code). You can:
 
 Most bots below rank 2 have <12% win rate. The gap between #1-2 and the rest is massive — good strategy wins here.
 
-## Key Insights for Strategy
+## Key Insights From 30 Matches
 
-1. **hbfreed-opus dominates at 85%** — likely using sophisticated coordination
-2. **SpaceDust (Craig's bot) is #2** — ask Craig about his approach at the meetup
-3. **Most bots are bad** — basic pack tactics should beat the bottom 40
-4. **Zone control matters** — 3 HP/tick outside zone adds up fast
-5. **5 bots share sandbox** — use shared state for coordination (global vars persist across `update()` calls for the same team)
-6. **AoE ability is powerful** — 15 dmg in 150-unit radius vs 10 dmg single target melee
+1. **Clear tier gap** — Top 3 (hbfreed-opus, SpaceDust, CrabCrusher) crush us. Everyone else loses.
+2. **hbfreed-opus only took 95 dmg** while killing all 5 of ours — superior coordination, not just targeting.
+3. **Our pack tactics work** against bots that don't coordinate — focus fire + zone awareness handles 87% of opponents.
+4. **Zone control matters** — 3 HP/tick outside zone adds up fast, many opponents die to zone.
+5. **5 bots share sandbox** — use shared state for coordination (global vars persist across `update()` calls for the same team).
+6. **AoE ability is powerful** — 15 dmg in 150-unit radius vs 10 dmg single target melee.
+7. **To beat the top 3** we likely need: better kiting, predictive targeting, terrain awareness, or adaptive behavior.
+
+## Priority: Beat the Top 3
+
+Analyze the 4 loss replays in `match-history/` to understand what top bots do differently. Key questions:
+- Are they kiting us (staying just outside attack range)?
+- Are they splitting to bait our pack, then converging?
+- Are they using terrain/obstacles we ignore?
+- Are they using abilities more effectively (we rarely trigger AoE)?
 
 ## Environment
 
