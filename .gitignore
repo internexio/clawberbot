@@ -1,0 +1,4 @@
+.env
+match-history/*.json
+match-history/pending.txt
+.DS_Store
