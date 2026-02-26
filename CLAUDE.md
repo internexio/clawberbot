@@ -5,7 +5,7 @@
 You are managing a competitive AI bot on Clawber.ai. Your job is to:
 1. **Iterate on bot strategy** — analyze match results, identify weaknesses, improve code
 2. **Submit and compete** — deploy new bot versions and queue matches
-3. **Climb the leaderboard** — currently 45 fighters, top bot "hbfreed-opus" at 85% win rate (1821 ELO)
+3. **Climb the leaderboard** — currently #2 at ~1531 ELO, chasing hbfreed-opus at #1 (1783 ELO)
 
 ## Security Boundary — READ THIS FIRST
 
@@ -36,20 +36,31 @@ The submit script reads a `.js` file and sends its contents as a string. That JS
 - **API Key:** in `.env` (`CLAWBER_API_KEY`)
 - **Claim URL:** https://clawber.ai/claim/blitz-SKDG (Twitter verification pending)
 - **Referral code:** `BCT7BX` (+25 ELO for both parties)
-- **Current bot:** `bots/v1-pack-tactics.js` (v1)
+- **Current bot:** `bots/v9-wolf-pack.js` (server v12)
 
-### Current Record (as of 2026-02-25)
-- **26W-4L (87% win rate)**
-- **ELO:** ~1078
-- **Losses to:** hbfreed-opus (#1), SpaceDust (#2), CrabCrusher (x2)
-- **Undefeated against:** everything else (PackLeader, CenterMass, DeepClaw, SigmaGrind, VortexReaper, etc.)
+### Bot Version History
+| Version | Server | File | Key Changes | Record |
+|---|---|---|---|---|
+| v1-v6 | v1-v9 | Various | Initial pack tactics → spread strike → pair hunting | ~26W-4L |
+| v7 | v10 | v7-tight-pack.js | Tight formation (80/120u), HP-weighted targeting, prime-based weights | 86W-5L (94.5%) |
+| v8 | v11 | v8-rally-pack.js | Rally phase (converge before engaging), first hbfreed WIN | 96W-4L (96%) |
+| v9 | v12 | v9-wolf-pack.js | Rally fight-back fix, endgame pursuit convergence | Testing... |
+
+### Current Record (as of 2026-02-26)
+- **~230W-13L (~95% win rate)** across all versions
+- **ELO:** ~1531 (#2 on leaderboard)
+- **Beat hbfreed-opus** for the first time with v8 rally phase
+- **Consistent losses to:** hbfreed-opus (but competitive now), ClaudeOpus, Velocity-Comet, CrabCrusher
+- **Undefeated against:** everything outside top ~6
 
 ### What We Know From Matches
-- **hbfreed-opus** destroyed us: 0 kills, 525 dmg taken. Elite coordination.
-- **SpaceDust** (Craig Robinson's bot): beat us 5-2. Strong but not unbeatable.
-- **CrabCrusher**: beat us 5-2 twice. Consistent top-tier.
-- **Everyone else:** we win decisively, often 5-0 perfects.
-- **Our weakness:** top 3 bots exploit something in our pack tactics — likely kiting or superior focus-fire.
+- **hbfreed-opus**: We've beaten them once (v8). Close losses come from spawn spread — bad spawn = death by tick 37, good spawn = competitive. Their coordination is elite but beatable.
+- **Spawn spread is critical**: Our spread at spawn (700-821u) determines early game survival vs top bots. Rally phase mitigates by converging to zone center before engaging.
+- **Rally phase works**: v8 rally reduced early losses from spawn disadvantage (4 alive at tick 40 vs 2 without rally).
+- **Endgame pursuit problem**: Identified 5v1 throw pattern — 3 bots trail at 900u+ while 2 engage, enemy kites and picks off isolated chasers. Fixed in v9 with straggler convergence.
+- **Velocity-Comet exploits rally**: Pairs (1 ally within 300u) failed v8's >=2 threshold, became passive punching bags. Fixed in v9 with >=1 threshold + fight-back when attacked.
+- **AoE gap**: Top bots fire 37-50% more abilities than us (19-22 vs 12-16). Not yet addressed.
+- **Everyone below top 6:** we win decisively, often 5-0 perfects.
 
 ### Previous Agent (deprecated)
 - NightwatchBot (separate API key, 10-0 record, no longer active)
@@ -144,17 +155,22 @@ clawberbot/
 ├── AGENTS.md          ← Agent instructions (INTERNAL)
 ├── .env               ← CLAWBER_API_KEY=clw_...
 ├── bots/              ← Bot code versions (ONLY these get submitted)
-│   ├── v1-pack-tactics.js
-│   └── ...
+│   ├── v1-pack-tactics.js through v6-pair-hunter.js (legacy)
+│   ├── v7-tight-pack.js    (server v10, 94.5%)
+│   ├── v8-rally-pack.js    (server v11, 96%)
+│   └── v9-wolf-pack.js     (server v12, CURRENT)
 ├── scripts/           ← Shell scripts for API operations
-│   ├── register.sh
 │   ├── submit.sh       ← Reads a .js file, sends code string to Clawber
 │   ├── queue-match.sh
 │   ├── match-status.sh
 │   ├── leaderboard.sh
-│   └── heartbeat.sh
-├── match-history/     ← Match result JSONs (INTERNAL)
+│   ├── heartbeat.sh
+│   └── nightwatch-monitor.sh  ← Automated match monitoring (runs on Mini)
+├── match-history/     ← Match result JSONs & replay analysis (INTERNAL)
+│   ├── pending*.txt   ← Match ID batches for result checking
+│   └── replay-*.json  ← Downloaded replay data for analysis
 ├── strategies/        ← KF/COS analysis and strategy docs (INTERNAL)
+├── logs/              ← Nightwatch monitoring logs (on Mini)
 └── docs/
     └── api-reference.md  (INTERNAL)
 ```
@@ -182,12 +198,14 @@ match results → KF-debugger (diagnose) → KF-strategist (decide) → write JS
 7. Submit and queue 3-5 matches to test
 5. Review results, repeat
 
-### Remote Management
-This project runs on Mac Mini via Happy (Claude Code). You can:
-- Queue matches and check results autonomously
-- Iterate on strategy between matches
-- Send heartbeats every 4 hours to stay active
-- Track ELO progression in match-history/
+### Remote Management (Nightwatch on Mac Mini)
+Automated monitoring runs on Mac Mini via launchd:
+- **Hourly matches:** `com.semalytics.clawber-monitor` — queues matches, checks results, logs to `logs/`
+- **2-hour heartbeats:** `com.semalytics.clawber-heartbeat` — keeps agent active
+- **Logs:** `logs/nightwatch.log`, `logs/results.csv`, `logs/leaderboard-history.csv`
+- **Script:** `scripts/nightwatch-monitor.sh`
+- Always uses the latest submitted bot version on the server
+- SSH into Mini to check: `ssh mini` then `tail ~/Scripts/clawberbot/logs/nightwatch.log`
 
 ## Strategy Framework
 
@@ -203,35 +221,37 @@ This project runs on Mac Mini via Happy (Claude Code). You can:
 - Model opponent "personality" — aggressive, defensive, zone-focused
 - Adapt strategy to counter specific opponents on the leaderboard
 
-## Current Leaderboard (as of 2026-02-25)
+## Current Leaderboard (as of 2026-02-26)
 
 | Rank | Fighter | Rating | W-L | Win% |
 |---|---|---|---|---|
-| 1 | hbfreed-opus | 1821 | 185-32 | 85% |
-| 2 | SpaceDust | 1637 | 250-186 | 57% |
-| 3 | SwarmLogic | 1274 | 23-200 | 10% |
-| 4 | PackLeader | 1271 | 14-202 | 6% |
-| 5 | HiveMind | 1228 | 19-158 | 11% |
+| 1 | hbfreed-opus | 1783 | 203-41 | 83% |
+| 2 | **SEMalytics** | **1531** | **607-52** | **92%** |
+| 3 | SpaceDust | 1514 | 268-212 | 56% |
+| 4 | ClaudeOpus | ~1300 | - | - |
+| 5 | CrabCrusher | ~1250 | - | - |
 
-Most bots below rank 2 have <12% win rate. The gap between #1-2 and the rest is massive — good strategy wins here.
+Gap to #1: 252 ELO. Most bots below rank 3 have <12% win rate. Strategy + iteration dominates.
 
-## Key Insights From 30 Matches
+## Key Insights From 250+ Matches
 
-1. **Clear tier gap** — Top 3 (hbfreed-opus, SpaceDust, CrabCrusher) crush us. Everyone else loses.
-2. **hbfreed-opus only took 95 dmg** while killing all 5 of ours — superior coordination, not just targeting.
-3. **Our pack tactics work** against bots that don't coordinate — focus fire + zone awareness handles 87% of opponents.
-4. **Zone control matters** — 3 HP/tick outside zone adds up fast, many opponents die to zone.
-5. **5 bots share sandbox** — use shared state for coordination (global vars persist across `update()` calls for the same team).
-6. **AoE ability is powerful** — 15 dmg in 150-unit radius vs 10 dmg single target melee.
-7. **To beat the top 3** we likely need: better kiting, predictive targeting, terrain awareness, or adaptive behavior.
+1. **We're competitive with #1** — Beat hbfreed-opus once, lost close matches (4K/490 vs 4K/495). No longer a blowout.
+2. **Spawn spread determines early game** — Bad spawn (821u spread) = death by tick 37 vs top bots. Rally phase mitigates this.
+3. **Rally phase is the breakthrough** — v8's rally phase (converge to zone center before engaging) turned 94.5% → 96% and enabled first hbfreed win.
+4. **Pack formation is everything** — Focus fire + tight formation beats individual skill. Once our pack forms, we match anyone.
+5. **Zone control matters** — 3 HP/tick outside zone adds up fast. Many opponents die to zone. Zone-aware movement is core to our strategy.
+6. **5 bots share sandbox** — use shared state for coordination (global `var _s` persists across `update()` calls for the same team).
+7. **AoE ability gap** — Top bots fire 37-50% more abilities. Closing this gap is the next opportunity.
+8. **Endgame pursuit needs pack awareness** — Without convergence, 5v1 advantages get thrown (3 stragglers at 900u+ while 2 engage). v9 fixes this.
+9. **Rally threshold matters** — >=2 allies required was too strict (pairs couldn't fight). >=1 with fight-back is the sweet spot.
 
-## Priority: Beat the Top 3
+## Priority: Close the Gap to #1
 
-Analyze the 4 loss replays in `match-history/` to understand what top bots do differently. Key questions:
-- Are they kiting us (staying just outside attack range)?
-- Are they splitting to bait our pack, then converging?
-- Are they using terrain/obstacles we ignore?
-- Are they using abilities more effectively (we rarely trigger AoE)?
+**ELO gap: 252 points.** Key areas to improve:
+- **AoE usage** — fire more abilities, especially during convergence and pursuit phases
+- **Spawn adaptation** — detect bad spawns earlier, rally faster
+- **Anti-kiting** — top bots kite our melee range. Need better pursuit prediction.
+- **Consistent hbfreed wins** — currently ~1 win per 5-6 matches. Need 50%+ to close ELO gap.
 
 ## Environment
 
