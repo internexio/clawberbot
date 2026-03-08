@@ -5,7 +5,7 @@
 You are managing a competitive AI bot on Clawber.ai. Your job is to:
 1. **Iterate on bot strategy** — analyze match results, identify weaknesses, improve code
 2. **Submit and compete** — deploy new bot versions and queue matches
-3. **Climb the leaderboard** — currently #2 at ~1531 ELO, chasing hbfreed-opus at #1 (1783 ELO)
+3. **Climb the leaderboard** — currently #2 at ~1557 ELO, chasing hbfreed-opus at #1 (1787 ELO)
 
 ## Security Boundary — READ THIS FIRST
 
@@ -36,31 +36,54 @@ The submit script reads a `.js` file and sends its contents as a string. That JS
 - **API Key:** in `.env` (`CLAWBER_API_KEY`)
 - **Claim URL:** https://clawber.ai/claim/blitz-SKDG (Twitter verification pending)
 - **Referral code:** `BCT7BX` (+25 ELO for both parties)
-- **Current bot:** `bots/v9-wolf-pack.js` (server v12)
+- **Current bot:** `bots/v27-ammo-discipline.js` (server v50)
 
 ### Bot Version History
-| Version | Server | File | Key Changes | Record |
+| Internal | Server | File | Key Changes | Record |
 |---|---|---|---|---|
-| v1-v6 | v1-v9 | Various | Initial pack tactics → spread strike → pair hunting | ~26W-4L |
-| v7 | v10 | v7-tight-pack.js | Tight formation (80/120u), HP-weighted targeting, prime-based weights | 86W-5L (94.5%) |
-| v8 | v11 | v8-rally-pack.js | Rally phase (converge before engaging), first hbfreed WIN | 96W-4L (96%) |
-| v9 | v12 | v9-wolf-pack.js | Rally fight-back fix, endgame pursuit convergence | Testing... |
+| v1-v6 | sv1-sv9 | Various | Initial pack tactics → spread strike → pair hunting | ~26W-4L |
+| v7 | sv10 | v7-tight-pack.js | Tight formation (80/120u), HP-weighted targeting | 86W-5L (94.5%) |
+| v8 | sv11 | v8-rally-pack.js | Rally phase (converge before engaging), first hbfreed WIN | 96W-4L (96%) |
+| v9 | sv12 | v9-wolf-pack.js | Rally fight-back fix, endgame pursuit convergence | ~100W-6L |
+| v10 | sv13 | v10-zone-pinch.js | Anti-kiting endgame pursuit, zone pinch | 47W-3L |
+| v11 | sv14 | v11-surgical-strike.js | Zone hysteresis, target lock, AoE pursuit, anti-distributed | — |
+| v12 | sv15 | v12-terrain-brawl.js | Terrain escape + fight-local + ability simplify | 50W-0L |
+| v13 | sv16 | — | Ability tolerance <=1, faster convergence | 94W-6L |
+| v14 | sv17 | v14-buddy-blitz.js | Buddy system — nearest ally rally | 94W-6L |
+| v15a | sv18 | v15-terrain-nav.js | BFS obstacle field + lookahead steering | 93W-7L |
+| v15b | sv19 | — | Prime timings (17t/7t) + isolated fight mode | 47W-3L (94%) |
+| v15c | sv20 | — | Distance recalibration from replay measurements | 46W-4L (92%) |
+| v16 | sv21 | v16-aoe-aware.js | AoE-safe spacing + persistent escape + advantage pursuit | 96W-4L (96%) |
+| v17 | sv22 | v17-pack-rally.js | Pack rally — team-center convergence, anti-fragmentation | 140W-10L (93%) |
+| v18 | sv23 | v18-aoe-salvo.js | Global ability-first + rally enemy bias | 46W-4L (92%) |
+| v16b | sv24 | v16b-tweaked.js | v16 + rally guard, any-enemy, suppress spread | 93W-7L (93%) |
+| v16c | sv25 | v16c-anti-oscillate.js | v16b + 1v1 chase, osc detect, anti-ABAB | 91W-9L (91%) |
+| v16d | sv26 | v16d-terrain-escape.js | v16c + persistent osc state, sweep probe, zone pull | 46W-4L (92%) |
+| v16e | sv27 | v16e-unified-escape.js | Unified escape: fast detect + multi-tile scoring + dir lock | 98W-2L (98% grind) |
+| — | sv28 | *(v16-aoe-aware.js resubmit)* | Revert to v16 by Happy agent (lost terrain fixes) | 7W-13L (35% elite) |
+| v16f | sv29 | v16f-terrain-fix.js | v16 combat + v16e terrain escape only (hybrid) | 10W-0L (testing) |
+| v19-v25 | sv30-sv47 | various | Ammo system adaptation (ammo gates, pickups, zone ceiling) | ~87% overall |
+| v26 | sv48-49 | v26-ammo-core.js | v16e base + ammo gates + pickups (FAILED: 80% WR) | 24W-6L (80%) |
+| **v27** | **sv50** | **v27-ammo-discipline.js** | **v25 + anti-ABAB + zone pull + ammo conservation + wider spread** | **28W-2L (93%)** |
 
-### Current Record (as of 2026-02-26)
-- **~230W-13L (~95% win rate)** across all versions
-- **ELO:** ~1531 (#2 on leaderboard)
-- **Beat hbfreed-opus** for the first time with v8 rally phase
-- **Consistent losses to:** hbfreed-opus (but competitive now), ClaudeOpus, Velocity-Comet, CrabCrusher
-- **Undefeated against:** everything outside top ~6
+### Current Record (as of 2026-03-08)
+- **~4600W-550L (~89% win rate)** across all versions
+- **ELO:** ~1245 (#3 on leaderboard, peaked at #1 with 1348)
+- **v27 test: 28W-2L (93%)** — best post-ammo result
+- **Game mechanics changed March 4:** ammo system added (3 ammo/bot, powerups spawn)
+- **Craig multi-account:** ClawberLang, CraigClaw, CrabCrusher, ApexPincer all @craigrrob
+- **CrabCrusher counter:** 2-sniper + 3-skirmisher formation, conserves ammo, out-farms pickups
+- **v16e base failed in ammo era:** 80% WR — combat prowess irrelevant when ammo runs out at tick 300
+- **v25 adapted to ammo meta:** 87% WR — iterated for pickup collection and zone positioning
 
 ### What We Know From Matches
-- **hbfreed-opus**: We've beaten them once (v8). Close losses come from spawn spread — bad spawn = death by tick 37, good spawn = competitive. Their coordination is elite but beatable.
-- **Spawn spread is critical**: Our spread at spawn (700-821u) determines early game survival vs top bots. Rally phase mitigates by converging to zone center before engaging.
-- **Rally phase works**: v8 rally reduced early losses from spawn disadvantage (4 alive at tick 40 vs 2 without rally).
-- **Endgame pursuit problem**: Identified 5v1 throw pattern — 3 bots trail at 900u+ while 2 engage, enemy kites and picks off isolated chasers. Fixed in v9 with straggler convergence.
-- **Velocity-Comet exploits rally**: Pairs (1 ally within 300u) failed v8's >=2 threshold, became passive punching bags. Fixed in v9 with >=1 threshold + fight-back when attacked.
-- **AoE gap**: Top bots fire 37-50% more abilities than us (19-22 vs 12-16). Not yet addressed.
-- **Everyone below top 6:** we win decisively, often 5-0 perfects.
+- **Ammo system (March 4)**: 3 ammo/bot, melee=1, ability=2. Powerups spawn (10 health, 10 ammo). Bots hit 0 ammo by tick 300. 75% of wins are zero-kill zone attrition.
+- **CrabCrusher strategy**: 2 snipers hold ammo, 3 skirmishers bait our pack. AoE hits 3-4 bots when we cluster at 96u. Out-farms powerups 6-to-3. Counter: wider spread, ammo conservation.
+- **hbfreed-opus**: Beaten with v8 and v27. Dropped from #1 (1787) to #7 (1153). Distributed lock-on still elite.
+- **Terrain oscillation**: Bots bounce 12u on obstacle edges. Fixed in v16e with unified terrain escape (fast detect + direction lock). Preserved in v27 via anti-ABAB moveHist.
+- **AoE multi-hits**: HARD_SPREAD increased from 80→120u in v27 to prevent AoE multi-kills. SOFT_SPREAD=160u.
+- **Ammo conservation**: v27 holds 2 ammo reserve — only fires single-target AoE when ammo >= 3, tick <= 10, tick > 600, or multi-hit available.
+- **Over-iteration kills**: v16→v25 (18 versions) introduced regressions. v16e (98%) lost anti-oscillation, zone pull in later versions. v27 restored them surgically.
 
 ### Previous Agent (deprecated)
 - NightwatchBot (separate API key, 10-0 record, no longer active)
@@ -101,8 +124,10 @@ All authenticated endpoints require: `Authorization: Bearer $CLAWBER_API_KEY`
 ### Bot Stats
 - **HP:** 100
 - **Speed:** 12 units/tick
+- **Ammo:** 3 per bot (melee costs 1, ability costs 2)
 - **Melee attack:** 200-unit range, 10 damage, 5-tick cooldown
 - **Ability (AoE):** 500-unit cast range, 150-unit blast radius, 15 damage, 30-tick cooldown
+- **Powerups:** 10 ammo + 10 health spawn per match
 - **Chat:** 60 chars max, 1 message per 20 ticks
 
 ### Battle Royale Zone
@@ -156,13 +181,16 @@ clawberbot/
 ├── .env               ← CLAWBER_API_KEY=clw_...
 ├── bots/              ← Bot code versions (ONLY these get submitted)
 │   ├── v1-pack-tactics.js through v6-pair-hunter.js (legacy)
-│   ├── v7-tight-pack.js    (server v10, 94.5%)
-│   ├── v8-rally-pack.js    (server v11, 96%)
-│   └── v9-wolf-pack.js     (server v12, CURRENT)
-├── scripts/           ← Shell scripts for API operations
+│   ├── v7-tight-pack.js through v15-terrain-nav.js (legacy)
+│   └── v27-ammo-discipline.js  (server v50, CURRENT — 93%)
+├── scripts/           ← Shell scripts for API operations (all use lib.sh)
+│   ├── lib.sh          ← Shared constants, parse_match(), API helpers
 │   ├── submit.sh       ← Reads a .js file, sends code string to Clawber
-│   ├── queue-match.sh
+│   ├── queue-match.sh N [name] ← Queue N matches → pending file
+│   ├── batch-results.sh [name] ← Check results from pending file
 │   ├── match-status.sh
+│   ├── download-replay.sh <id> [dir]
+│   ├── measure-distances.py    ← Compare distances in win/loss replays
 │   ├── leaderboard.sh
 │   ├── heartbeat.sh
 │   └── nightwatch-monitor.sh  ← Automated match monitoring (runs on Mini)
@@ -221,37 +249,38 @@ Automated monitoring runs on Mac Mini via launchd:
 - Model opponent "personality" — aggressive, defensive, zone-focused
 - Adapt strategy to counter specific opponents on the leaderboard
 
-## Current Leaderboard (as of 2026-02-26)
+## Current Leaderboard (as of 2026-03-08)
 
-| Rank | Fighter | Rating | W-L | Win% |
-|---|---|---|---|---|
-| 1 | hbfreed-opus | 1783 | 203-41 | 83% |
-| 2 | **SEMalytics** | **1531** | **607-52** | **92%** |
-| 3 | SpaceDust | 1514 | 268-212 | 56% |
-| 4 | ClaudeOpus | ~1300 | - | - |
-| 5 | CrabCrusher | ~1250 | - | - |
+| Rank | Fighter | Rating | W-L | Win% | Notes |
+|---|---|---|---|---|---|
+| 1 | CraigClaw | 1340 | 20-73 | 22% | @craigrrob, low games |
+| 2 | ClawberLang | 1319 | 559-535 | 51% | @craigrrob |
+| **3** | **SEMalytics** | **1245** | **4537-542** | **89%** | **Us** |
+| 4 | CrabCrusher | 1264 | 16-0 | 100% | @craigrrob, new |
+| 7 | hbfreed-opus | 1153 | 394-171 | 70% | Dropped from #1 |
+| 11 | oztenbot | 1087 | 568-164 | 78% | |
 
-Gap to #1: 252 ELO. Most bots below rank 3 have <12% win rate. Strategy + iteration dominates.
+Craig (@craigrrob) controls 4 accounts in top 12 — possible ELO farming via referrals (+25 each).
+Gap to #1: ~95 ELO. ELO deflation across board since late Feb.
 
-## Key Insights From 250+ Matches
+## Key Insights From 4600+ Matches
 
-1. **We're competitive with #1** — Beat hbfreed-opus once, lost close matches (4K/490 vs 4K/495). No longer a blowout.
-2. **Spawn spread determines early game** — Bad spawn (821u spread) = death by tick 37 vs top bots. Rally phase mitigates this.
-3. **Rally phase is the breakthrough** — v8's rally phase (converge to zone center before engaging) turned 94.5% → 96% and enabled first hbfreed win.
-4. **Pack formation is everything** — Focus fire + tight formation beats individual skill. Once our pack forms, we match anyone.
-5. **Zone control matters** — 3 HP/tick outside zone adds up fast. Many opponents die to zone. Zone-aware movement is core to our strategy.
-6. **5 bots share sandbox** — use shared state for coordination (global `var _s` persists across `update()` calls for the same team).
-7. **AoE ability gap** — Top bots fire 37-50% more abilities. Closing this gap is the next opportunity.
-8. **Endgame pursuit needs pack awareness** — Without convergence, 5v1 advantages get thrown (3 stragglers at 900u+ while 2 engage). v9 fixes this.
-9. **Rally threshold matters** — >=2 allies required was too strict (pairs couldn't fight). >=1 with fight-back is the sweet spot.
+1. **Ammo changes everything** — Game added ammo March 4. 3 ammo/bot means matches are decided by: (1) opening burst, (2) powerup collection, (3) zone positioning. Combat prowess matters less.
+2. **75% of wins are zero-kill** — most matches end by zone/timeout attrition, not eliminations.
+3. **Ammo conservation wins** — Don't dump all ammo by tick 50. Hold 2 in reserve for mid-game AoE when it matters. Multi-hit AoE is always worth it.
+4. **Pack formation still matters** — but must spread wider (120u+) to avoid AoE multi-kills. Old 80u HARD_SPREAD was lethal.
+5. **Powerup farming is the new meta** — CrabCrusher out-farms us 6-to-3 on pickups. Ammo pickups directly fund killing AoE.
+6. **Over-iteration kills** — 18 versions from v16→v25 introduced regressions. Best approach: proven base + surgical fixes.
+7. **Zone-aware safeMove is critical** — v22's zone-aware obstacle avoidance (reject moves away from zone) matters more in ammo era.
+8. **Craig multi-account strategy** — 4 bots in top 12, possibly farming referral ELO (+25 each).
 
 ## Priority: Close the Gap to #1
 
-**ELO gap: 252 points.** Key areas to improve:
-- **AoE usage** — fire more abilities, especially during convergence and pursuit phases
-- **Spawn adaptation** — detect bad spawns earlier, rally faster
-- **Anti-kiting** — top bots kite our melee range. Need better pursuit prediction.
-- **Consistent hbfreed wins** — currently ~1 win per 5-6 matches. Need 50%+ to close ELO gap.
+**ELO gap: ~95 points.** Key areas to improve:
+- **CrabCrusher counter** — 2-sniper + 3-skirmisher formation with ammo conservation. Need to target distant snipers, not bait skirmishers.
+- **Powerup denial** — contest ammo spawns more aggressively (currently out-farmed 2:1 by elite bots)
+- **Referral ELO** — Craig may be farming; consider matching if legitimate
+- **Ammo-aware targeting** — prioritize enemies with ammo (they're the threat)
 
 ## Environment
 
