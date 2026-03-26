@@ -5,7 +5,7 @@
 You are managing a competitive AI bot on Clawber.ai. Your job is to:
 1. **Iterate on bot strategy** — analyze match results, identify weaknesses, improve code
 2. **Submit and compete** — deploy new bot versions and queue matches
-3. **Climb the leaderboard** — currently #2 at ~1557 ELO, chasing hbfreed-opus at #1 (1787 ELO)
+3. **Climb the leaderboard** — currently #3 at 1479 ELO, chasing CrabCrusher at #1 (1748 ELO)
 
 ## Security Boundary — READ THIS FIRST
 
@@ -36,7 +36,7 @@ The submit script reads a `.js` file and sends its contents as a string. That JS
 - **API Key:** in `.env` (`CLAWBER_API_KEY`)
 - **Claim URL:** https://clawber.ai/claim/blitz-SKDG (Twitter verification pending)
 - **Referral code:** `BCT7BX` (+25 ELO for both parties)
-- **Current bot:** `bots/v27-ammo-discipline.js` (server v50)
+- **Current bot:** `bots/v34-range-calibration.js` (server v73)
 
 ### Bot Version History
 | Internal | Server | File | Key Changes | Record |
@@ -64,29 +64,65 @@ The submit script reads a `.js` file and sends its contents as a string. That JS
 | v16f | sv29 | v16f-terrain-fix.js | v16 combat + v16e terrain escape only (hybrid) | 10W-0L (testing) |
 | v19-v25 | sv30-sv47 | various | Ammo system adaptation (ammo gates, pickups, zone ceiling) | ~87% overall |
 | v26 | sv48-49 | v26-ammo-core.js | v16e base + ammo gates + pickups (FAILED: 80% WR) | 24W-6L (80%) |
-| **v27** | **sv50** | **v27-ammo-discipline.js** | **v25 + anti-ABAB + zone pull + ammo conservation + wider spread** | **28W-2L (93%)** |
+| v27 | sv50,56,58 | v27-ammo-discipline.js | v25 + anti-ABAB + zone pull + ammo conservation + wider spread | 93% proven |
+| v28 | sv51-54 | v28-spread-fix.js | Wider HARD_SPREAD + spread weight boost + pickup routing (CC counter) | 0W-15L vs CC |
+| v29 | sv55 | v29-split-formation.js | Role-based squad/roamer split (CC counter) | 0W-5L vs CC (worse) |
+| v30 | sv57 | v30-ring-formation.js | Ring formation — per-bot rally points at 72° intervals (CC counter) | 10W-0L general, 0W-5L CC |
+| v27b | sv59 | v27b-zone-fix.js | Zone-edge emergency retreat (overcorrected — too passive) | 15W-5L (75%) |
+| v27c | sv61 | v27c-zone-orbit.js | Lateral orbit near zone edge (disrupted chase effectiveness) | 16W-3L (84%) |
+| v27 | sv63,68 | v27-ammo-discipline.js | Restored — v27b/v27c fixes both hurt WR. v27 baseline: 18W-1L (95%) | 95% confirmed |
+| v31 | sv67 | v31-zone-aware.js | Movement-vector zone pull in spread/rally/chase (FAILED) | 5W-5L (50%) |
+| v32 | sv69-70 | v32-zone-targeting.js | Zone-aware target selection — penalize edge-ward targets in scoreEnemy() | 92% rolling-100 |
+| v33 | sv71 | v33-survival-instinct.js | Survival instinct: isolated bots flee to allies, unlocked ammo, buddy gate fix | 27W-3L (90%) |
+| **v34** | **sv73** | **v34-range-calibration.js** | **Range calibration: ABL 500→700, ATK 200→256, ammo reserve 3→4** | **30W-0L (100%), ACTIVE** |
 
-### Current Record (as of 2026-03-08)
-- **~4600W-550L (~89% win rate)** across all versions
-- **ELO:** ~1245 (#3 on leaderboard, peaked at #1 with 1348)
-- **v27 test: 28W-2L (93%)** — best post-ammo result
-- **Game mechanics changed March 4:** ammo system added (3 ammo/bot, powerups spawn)
-- **Craig multi-account:** ClawberLang, CraigClaw, CrabCrusher, ApexPincer all @craigrrob
-- **CrabCrusher counter:** 2-sniper + 3-skirmisher formation, conserves ammo, out-farms pickups
-- **v16e base failed in ammo era:** 80% WR — combat prowess irrelevant when ammo runs out at tick 300
-- **v25 adapted to ammo meta:** 87% WR — iterated for pickup collection and zone positioning
+### Current Record (as of 2026-03-25)
+- **6167W-932L (87% win rate)** across all versions
+- **ELO:** 1806 (#2 on leaderboard, peak was #1 at 1797)
+- **v33 active:** 93-100% daily WR, 57-win streak as of Mar 25
+- **+362 ELO since Mar 16** (1444→1806) — Nightwatch grind working
+- **v31 movement-vector zone pull FAILED (50% WR)** — 4th proof that movement vector changes kill WR
+- **Game mechanics changed multiple times:** ammo system added March 4, then rebalanced (5 ammo/bot, melee nerfed, ability range 700u). Check `scripts/check-game-config.sh` for current values.
+- **Craig multi-account:** ClawberLang, CraigClaw, CrabCrusher, ApexPincer, SpaceDust — all @craigrrob
+- **CrabCrusher-0308:** #1 at 1813 ELO (188W-44L). New bot — NO split formation, 5 independent chasers, center convergence + 700u ability sniping. Old CC (split+pickup farming) dropped to #7.
+- **CrabCrusher (old):** Fell to #7 (1401 ELO). Split formation strategy obsolete in new meta.
+- **CC counter attempts (v28-v30):** All failed (0W-20L+ vs CC). Cost ~80 ELO in experimentation.
+- **CC scouting report:** `scouting/crabcrusher/analysis.md` — full strategy breakdown + replay data
+- **hbfreed-opus resurgent:** #2 at 1535 ELO — recovered from 1093. Main ladder loss source (placement losses).
+- **CFJBot fleet:** 6+ unclaimed LLM-generated bots, several in top 11. v32 beats them consistently.
+- **Steve (@doormat23):** 1260 ELO with 2% WR — referral-farmed ELO. Zone attrition bot.
+- **damxipo-bot:** @DamCipolat's second bot (also runs ClawMaster #14). Sacrifice-1-camp-center strategy.
+- **Ladder matches:** Auto 1v1 every ~15-30 min. Asymmetric ELO: wins vs low-rated give +2-3, losses to similar-rated cost -15-30. Main source of ELO bleed.
+- **batch-results.sh bug fixed (2026-03-14):** Was using damage tiebreak instead of winnerId. Reported false losses (same bug nightwatch had).
 
 ### What We Know From Matches
-- **Ammo system (March 4)**: 3 ammo/bot, melee=1, ability=2. Powerups spawn (10 health, 10 ammo). Bots hit 0 ammo by tick 300. 75% of wins are zero-kill zone attrition.
-- **CrabCrusher strategy**: 2 snipers hold ammo, 3 skirmishers bait our pack. AoE hits 3-4 bots when we cluster at 96u. Out-farms powerups 6-to-3. Counter: wider spread, ammo conservation.
-- **hbfreed-opus**: Beaten with v8 and v27. Dropped from #1 (1787) to #7 (1153). Distributed lock-on still elite.
+- **Current game balance (as of 2026-03-25)**: 5 ammo/bot (25 total), melee nearly useless (5 dmg, 10-tick cd), abilities are primary damage (10 dmg, 700u cast range, 150u blast). Pickups restore 35 HP or 3 ammo. See `game-config.json` for exact values.
+- **CrabCrusher-0308 strategy (new)**: No split formation — 5 independent chasers converging to zone center. Ability-only (zero melee). Coordinated fire (2-3 bots targeting same position same tick). No pickup farming (doesn't need it with 25 starting ammo). See `scouting/crabcrusher-0308/`.
+- **CrabCrusher (old) strategy**: Split formation (3+2) is obsolete. Old CC fell from #1 to #7. See `scouting/crabcrusher/analysis.md`.
+- **CC-0308 root causes**: (1) They fire abilities from 700u while our ABL_RANGE=500 limits us to 500u — 200u free damage zone. (2) Faster center convergence gives positional advantage. (3) We dump ammo faster (15 remaining at t50 vs their 20-21). We're 2W-9L vs CC-0308.
+- **Old CC counter failures (v28-v30)**: All failed (0W-20L+). Obsolete — old CC is no longer the threat.
+- **hbfreed-opus**: Recovered to #2 (1535 ELO, 534W-260L). Beats us in ladder placement matches regularly. Main ELO bleed source.
 - **Terrain oscillation**: Bots bounce 12u on obstacle edges. Fixed in v16e with unified terrain escape (fast detect + direction lock). Preserved in v27 via anti-ABAB moveHist.
 - **AoE multi-hits**: HARD_SPREAD increased from 80→120u in v27 to prevent AoE multi-kills. SOFT_SPREAD=160u.
-- **Ammo conservation**: v27 holds 2 ammo reserve — only fires single-target AoE when ammo >= 3, tick <= 10, tick > 600, or multi-hit available.
-- **Over-iteration kills**: v16→v25 (18 versions) introduced regressions. v16e (98%) lost anti-oscillation, zone pull in later versions. v27 restored them surgically.
+- **Ammo conservation**: v27/v33 holds 2 ammo reserve — only fires single-target AoE when ammo >= 3, tick <= 10, tick > 600, or multi-hit available. **Stale**: tuned for 3 starting ammo, actual is now 5. Over-conserving.
+- **Over-iteration kills**: v16→v25 (18 versions), v28→v30 (CC counters), v27b→v27c (zone fixes), and v31 (zone pull) ALL made WR worse when they modified movement vectors. v32 succeeded by changing target SELECTION instead of movement — first successful zone fix in 4 attempts.
+- **Movement vector zone fixes are a dead end**: v27b (75%), v27c (84%), v31 (50%) — three attempts to add zone-center pull to movement vectors, all degraded WR. Any pull toward center weakens chase/spread. v32 proves the right approach is changing DECISIONS (which target) not FORCES (how to move).
+- **Small sample WR is unreliable**: 6W-4L (10 matches) looks like 60% WR but is just variance. Need 50+ matches for confidence. v27's "93%" from 28W-2L was too small; true rate is ~90-95%.
+- **AdaptiveAI (8% WR) is a persistent nemesis**: Zone-center camping bot that outlasts us through positioning. Lost to it in both old and new replays. Accept as ~50/50 matchup.
 
 ### Previous Agent (deprecated)
 - NightwatchBot (separate API key, 10-0 record, no longer active)
+
+## Session Startup Checklist
+
+Run these at the start of every conversation:
+1. **Game config check:** `scripts/check-game-config.sh` — detects rule/balance changes. If changes found, review impact on active bot constants and update baseline with `--update`.
+2. **Leaderboard check:** `scripts/leaderboard.sh` or API call — track ELO movement and new entrants.
+3. **Recent results:** Check `logs/results.csv` for overnight Nightwatch performance (W-L, loss opponents).
+
+Game config baseline is stored in `game-config.json`. The script parses `llms-full.txt` and compares against it. **Previous config blindness cost us ~3 weeks of running stale constants (v19-v33).**
+
+**Automated:** Nightwatch runs `check-game-config.sh --quiet` daily. If changes detected, writes `logs/config-alert.json`. Check for this file at session start.
 
 ## Quick Reference
 
@@ -121,13 +157,13 @@ All authenticated endpoints require: `Authorization: Bearer $CLAWBER_API_KEY`
 - **Teams:** 5 bots per agent, 10 total per match
 - **Victory:** Eliminate all enemy bots OR highest total health at time limit
 
-### Bot Stats
+### Bot Stats (updated 2026-03-25 — verify with `scripts/check-game-config.sh`)
 - **HP:** 100
 - **Speed:** 12 units/tick
-- **Ammo:** 3 per bot (melee costs 1, ability costs 2)
-- **Melee attack:** 200-unit range, 10 damage, 5-tick cooldown
-- **Ability (AoE):** 500-unit cast range, 150-unit blast radius, 15 damage, 30-tick cooldown
-- **Powerups:** 10 ammo + 10 health spawn per match
+- **Ammo:** 5 per bot (melee costs 1, ability costs 2)
+- **Melee attack:** 256-unit range, 5 damage, 10-tick cooldown (nerfed — nearly useless)
+- **Ability (AoE):** 700-unit cast range, 150-unit blast radius, 10 damage, 30-tick cooldown
+- **Powerups:** restores 35 HP or 3 ammo per pickup
 - **Chat:** 60 chars max, 1 message per 20 ticks
 
 ### Battle Royale Zone
@@ -182,7 +218,9 @@ clawberbot/
 ├── bots/              ← Bot code versions (ONLY these get submitted)
 │   ├── v1-pack-tactics.js through v6-pair-hunter.js (legacy)
 │   ├── v7-tight-pack.js through v15-terrain-nav.js (legacy)
-│   └── v27-ammo-discipline.js  (server v50, CURRENT — 93%)
+│   ├── v32-zone-targeting.js  (server v70, CURRENT — 92% rolling)
+│   ├── v27-ammo-discipline.js  (server v68, FALLBACK)
+│   ├── v28-spread-fix.js through v30-ring-formation.js (CC counters, all failed)
 ├── scripts/           ← Shell scripts for API operations (all use lib.sh)
 │   ├── lib.sh          ← Shared constants, parse_match(), API helpers
 │   ├── submit.sh       ← Reads a .js file, sends code string to Clawber
@@ -197,6 +235,8 @@ clawberbot/
 ├── match-history/     ← Match result JSONs & replay analysis (INTERNAL)
 │   ├── pending*.txt   ← Match ID batches for result checking
 │   └── replay-*.json  ← Downloaded replay data for analysis
+├── scouting/          ← Opponent analysis and replay data (INTERNAL)
+│   └── crabcrusher/analysis.md  ← Full CC strategy breakdown
 ├── strategies/        ← KF/COS analysis and strategy docs (INTERNAL)
 ├── logs/              ← Nightwatch monitoring logs (on Mini)
 └── docs/
@@ -249,38 +289,117 @@ Automated monitoring runs on Mac Mini via launchd:
 - Model opponent "personality" — aggressive, defensive, zone-focused
 - Adapt strategy to counter specific opponents on the leaderboard
 
-## Current Leaderboard (as of 2026-03-08)
+## Current Leaderboard (as of 2026-03-25)
 
 | Rank | Fighter | Rating | W-L | Win% | Notes |
 |---|---|---|---|---|---|
-| 1 | CraigClaw | 1340 | 20-73 | 22% | @craigrrob, low games |
-| 2 | ClawberLang | 1319 | 559-535 | 51% | @craigrrob |
-| **3** | **SEMalytics** | **1245** | **4537-542** | **89%** | **Us** |
-| 4 | CrabCrusher | 1264 | 16-0 | 100% | @craigrrob, new |
-| 7 | hbfreed-opus | 1153 | 394-171 | 70% | Dropped from #1 |
-| 11 | oztenbot | 1087 | 568-164 | 78% | |
+| 1 | CrabCrusher-0308 | 1813 | 188-44 | 81% | @craigrrob, gpt-5.3-codex, azad-cli |
+| **2** | **SEMalytics** | **1806** | **6167-932** | **87%** | **Us — v33, 93%+ daily** |
+| 3 | oztenbot | 1612 | 760-284 | 73% | @Austin King, climbed |
+| 4 | ClaudeOpus | 1611 | 393-331 | 54% | Surged |
+| 5 | hbfreed-opus | 1543 | 646-383 | 63% | @hbfreed |
+| 6 | SpaceDust | 1441 | 542-555 | 49% | @craigrrob |
+| 7 | CrabCrusher (old) | 1401 | 534-589 | 48% | @craigrrob, fallen |
+| 8 | CFJBot-Opus46F | 1397 | 305-298 | 51% | LLM-generated |
+| 19 | ApexPincer | 1135 | 208-99 | 68% | @craigrrob, gpt-5-codex |
 
-Craig (@craigrrob) controls 4 accounts in top 12 — possible ELO farming via referrals (+25 each).
-Gap to #1: ~95 ELO. ELO deflation across board since late Feb.
+Craig (@craigrrob) controls: CrabCrusher-0308 (#1), SpaceDust (#6), CrabCrusher (#7), CraigClaw (#10), ApexPincer (#19), ClawberLang (#30).
+Gap to #1: **7 ELO**. Tightest race ever.
 
-## Key Insights From 4600+ Matches
+## Key Insights From 5700+ Matches
 
-1. **Ammo changes everything** — Game added ammo March 4. 3 ammo/bot means matches are decided by: (1) opening burst, (2) powerup collection, (3) zone positioning. Combat prowess matters less.
+1. **Ammo and ability range define the meta** — 5 ammo/bot, abilities cast from 700u (melee is nearly useless at 5 dmg). Matches decided by: (1) ability aim + multi-hits, (2) zone positioning, (3) ammo management. Melee DPS is 0.5/tick vs ability's 0.33/tick but abilities hit AoE.
 2. **75% of wins are zero-kill** — most matches end by zone/timeout attrition, not eliminations.
 3. **Ammo conservation wins** — Don't dump all ammo by tick 50. Hold 2 in reserve for mid-game AoE when it matters. Multi-hit AoE is always worth it.
 4. **Pack formation still matters** — but must spread wider (120u+) to avoid AoE multi-kills. Old 80u HARD_SPREAD was lethal.
-5. **Powerup farming is the new meta** — CrabCrusher out-farms us 6-to-3 on pickups. Ammo pickups directly fund killing AoE.
-6. **Over-iteration kills** — 18 versions from v16→v25 introduced regressions. Best approach: proven base + surgical fixes.
-7. **Zone-aware safeMove is critical** — v22's zone-aware obstacle avoidance (reject moves away from zone) matters more in ammo era.
-8. **Craig multi-account strategy** — 4 bots in top 12, possibly farming referral ELO (+25 each).
+5. **Powerup farming less critical with 5 ammo** — was meta when ammo was 3/bot. With 25 starting ammo, pickups are nice but not decisive. CC-0308 collects 0-1 pickups and still wins. Pickups still matter for health (35 HP restore is huge).
+6. **Over-iteration kills** — v16→v25 (18 versions) and v28→v30 (3 CC counters) both introduced regressions. Best approach: proven base + surgical fixes. Never chase a specific opponent at the cost of general WR.
+7. **Movement vector zone fixes are a proven dead end** — v27b (75%), v27c (84%), v31 (50%) all added zone-center pull to movement vectors, all degraded WR. The fix is changing DECISIONS (target selection) not FORCES (movement blending). v32 proved this.
+8. **Craig multi-account strategy** — 5 accounts in top 28, likely farming referral ELO (+25 each). Steve (@doormat23) also referral-farmed to 1255 with 2% WR.
+9. **CFJBot fleet** — 6+ unclaimed LLM-generated bots, several in top 11 (Opus46F at #6). v32 beats them consistently. Turtle at center strategy.
+10. **Ladder matches cause asymmetric ELO bleed** — auto-matched every 15-30 min. Wins vs low-ELO give +2-3, losses to similar-ELO cost -15-30. Need high WR against ALL opponents, not just low-tier.
+11. **Opponent scouting**: CFJBot = turtle at 170u, dump ammo in first 68 ticks, go passive. damxipo-bot = sacrifice 1 bot, camp center with 4, win on HP attrition.
 
-## Priority: Close the Gap to #1
+## Priority: Update Bot for New Meta
 
-**ELO gap: ~95 points.** Key areas to improve:
-- **CrabCrusher counter** — 2-sniper + 3-skirmisher formation with ammo conservation. Need to target distant snipers, not bait skirmishers.
-- **Powerup denial** — contest ammo spawns more aggressively (currently out-farmed 2:1 by elite bots)
-- **Referral ELO** — Craig may be farming; consider matching if legitimate
-- **Ammo-aware targeting** — prioritize enemies with ammo (they're the threat)
+**Current focus:** v33 (sv71/72) winning 93%+ overall but has STALE CONSTANTS from old game config. 2W-9L vs CC-0308.
+
+**v33 stale constants (must fix):**
+- `ATK_RANGE = 200` → actual 256 (melee nearly useless anyway at 5 dmg)
+- `ABL_RANGE = 500` → actual 700 (leaving 200u of free ability range on the table!)
+- `ammo >= 3` reserve gate → tuned for 3 starting ammo, now 5 (over-conserving)
+- `hasAbilityAmmo = ammo >= 2` → correct (ability still costs 2)
+
+**Key insight:** v33 wins 93%+ despite stale constants because most opponents are weak. But vs CC-0308 (#1), the 200u ability range gap and ammo over-conservation are likely decisive. We're 2W-9L head-to-head.
+
+**CC-0308 scouting:** `scouting/crabcrusher-0308/` — 2 replays analyzed. Simple strategy: 5 independent chasers, center convergence, coordinated 700u ability fire, zero melee.
+
+**Fallbacks:** v32 at sv70, v27 at sv68.
+
+**Shelved:**
+- Old CrabCrusher counter (v28-v30) — obsolete, old CC fell to #7
+- Movement vector zone fixes — proven dead end (v27b, v27c, v31 all failed)
+
+## Bot Change Protocol
+
+1. **Identify the layer:** Is the problem in decisions (what to do) or execution (how to move)?
+   - Decision problems → modify scoring, targeting, state transitions
+   - Execution problems → modify movement vectors, terrain handling
+   - **NEVER add zone-center pull to movement vectors** (proven dead end: v27b 75%, v27c 84%, v31 50%). Change DECISIONS not FORCES.
+
+2. **KF pipeline for non-trivial changes:**
+   `strategist (evaluate approaches) → critic (pre-code review) → builder (implement) → critic (final review)`
+   The pre-code critic pass is more valuable than the post-code pass. It's cheaper to reject an approach than revert a deployment.
+
+3. **Triple-gate any behavioral change:**
+   - Gate 1: Game phase (tick range, zone size)
+   - Gate 2: Bot position (distance from relevant feature)
+   - Gate 3: Situation (enemy exists, ammo available, etc.)
+   If any gate fails, change does NOTHING. Changes that do nothing 95% of the time are safer than changes that do a little bit 100% of the time.
+
+4. **Gated deployment:**
+   - Submit → 10 matches (abort only if <6W — catastrophic signal)
+   - If passes → 20 more (total 30, need ≥88%)
+   - **ALWAYS verify via winnerId** (batch-results.sh and other tools may have bugs)
+   - Separate expected losses (CrabCrusher, Steve) from regression signals (losing to <10% WR bots)
+
+5. **Revert protocol:**
+   - v27-ammo-discipline.js at sv68 is always the safe fallback
+   - Revert if WR < 85% over 30+ verified matches
+   - After revert, save the failed version for analysis — don't delete
+
+## Measurement Trust Chain
+
+**Authoritative source:** `winnerId` from match API (`GET /api/v1/match/{id}`)
+
+**Known bug class:** winnerId vs placement/damage tiebreak disagree in timeout matches.
+
+| Tool | Status | Notes |
+|------|--------|-------|
+| `nightwatch-monitor.sh` | FIXED | Uses winnerId |
+| `batch-results.sh` | FIXED 2026-03-14 | Was using damage tiebreak |
+| `download-replay.sh` | CAUTION | Uses API result label, may disagree with winnerId |
+| Heartbeat `recentMatches` | BROKEN | `won` field is ALWAYS false, use winnerId |
+
+**Rule:** When results look surprisingly bad, verify winnerId before reverting. We almost reverted a 20W-0L bot because batch-results reported it as 15W-5L.
+
+## Opponent Intelligence
+
+### Fleet Tracking
+| Operator | Accounts | Combined Losses | Strategy |
+|----------|----------|-----------------|----------|
+| @craigrrob | CrabCrusher, ClawberLang, CraigClaw, ApexPincer, SpaceDust | 57 | Split formation, pickup farming |
+| CFJBot (unknown) | Sonnet45, Sonnet46, Opus45, GPT51C, GPT52, + more | 61 | Turtle at center, burst then passive |
+| @DamCipolat | ClawMaster, damxipo-bot | 17 | Sacrifice 1, camp center, focus-fire |
+| @doormat23 | Steve + ~8 feeders? | 8 | Zone attrition, referral-farmed ELO |
+
+### ELO Anomaly Detection
+High ELO + low WR = referral farming. Currently 9 agents with <10% WR above 1000 ELO.
+Referral bonus: +25 per referral. 8 feeders = +200 free ELO.
+
+### Scouting Files
+- `scouting/crabcrusher/analysis.md` — CC strategy + replay data
+- Loss replays saved at `match-history/replay-loss-{opponent}-{matchId}.json`
 
 ## Environment
 

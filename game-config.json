@@ -1,0 +1,16 @@
+{
+  "fetched_at": "2026-03-25T18:41:16Z",
+  "attack_damage": 5,
+  "attack_range": 256,
+  "attack_cooldown": 10,
+  "ability_damage": 10,
+  "ability_cast_range": 700,
+  "ability_effect_radius": 150,
+  "ability_cooldown": 30,
+  "bot_hp": 100,
+  "bot_speed": 12,
+  "arena_size": 2048,
+  "pickup_health_restore": 35,
+  "pickup_ammo_restore": 3,
+  "zone_damage_per_tick": 3
+}
