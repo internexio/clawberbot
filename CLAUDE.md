@@ -36,7 +36,7 @@ The submit script reads a `.js` file and sends its contents as a string. That JS
 - **API Key:** in `.env` (`CLAWBER_API_KEY`)
 - **Claim URL:** https://clawber.ai/claim/blitz-SKDG (Twitter verification pending)
 - **Referral code:** `BCT7BX` (+25 ELO for both parties)
-- **Current bot:** `bots/v34-range-calibration.js` (server v73)
+- **Current bot:** `bots/v36-cluster-aim.js` (server v83) — took #1 leaderboard 2026-05-19
 
 ### Bot Version History
 | Internal | Server | File | Key Changes | Record |
@@ -74,26 +74,29 @@ The submit script reads a `.js` file and sends its contents as a string. That JS
 | v31 | sv67 | v31-zone-aware.js | Movement-vector zone pull in spread/rally/chase (FAILED) | 5W-5L (50%) |
 | v32 | sv69-70 | v32-zone-targeting.js | Zone-aware target selection — penalize edge-ward targets in scoreEnemy() | 92% rolling-100 |
 | v33 | sv71 | v33-survival-instinct.js | Survival instinct: isolated bots flee to allies, unlocked ammo, buddy gate fix | 27W-3L (90%) |
-| **v34** | **sv73** | **v34-range-calibration.js** | **Range calibration: ABL 500→700, ATK 200→256, ammo reserve 3→4** | **30W-0L (100%), ACTIVE** |
+| v34 | sv73-75 | v34-range-calibration.js | Range calibration: ABL 500→700, ATK 200→256, ammo reserve 3→4 | 30W-0L (100%) |
+| v35a/b/c | sv76-78,80,82 | v35c-ammo-discipline.js | Wide spread (HARD 200, SOFT 260), focus-fire x2, ammo reserve restored to 4 | 35% vs CC (n=20), 90%+ ladder |
+| v35d | sv77 | v35d-ammo-relax.js | Gate relax (ammo>=3, hp<80) — FAILED, 36% vs CC | 9W-16L vs CC |
+| v35e | sv79 | v35e-pickup-commit.js | Removed melee from pickup branch — FAILED, 15% vs CC | 3W-17L vs CC |
+| v35d-D | sv81 | v35d-D-melee-killshot.js | Gate melee to kill-shot only — FAILED, 77% ladder abort | 7W-2L ladder |
+| **v36** | **sv83** | **v36-cluster-aim.js** | **clusterAim() — centroid targeting at 12 ability sites** | **17W-12L vs CC (59%), #1 leaderboard** |
 
-### Current Record (as of 2026-03-25)
-- **6167W-932L (87% win rate)** across all versions
-- **ELO:** 1806 (#2 on leaderboard, peak was #1 at 1797)
-- **v33 active:** 93-100% daily WR, 57-win streak as of Mar 25
-- **+362 ELO since Mar 16** (1444→1806) — Nightwatch grind working
-- **v31 movement-vector zone pull FAILED (50% WR)** — 4th proof that movement vector changes kill WR
-- **Game mechanics changed multiple times:** ammo system added March 4, then rebalanced (5 ammo/bot, melee nerfed, ability range 700u). Check `scripts/check-game-config.sh` for current values.
-- **Craig multi-account:** ClawberLang, CraigClaw, CrabCrusher, ApexPincer, SpaceDust — all @craigrrob
-- **CrabCrusher-0308:** #1 at 1813 ELO (188W-44L). New bot — NO split formation, 5 independent chasers, center convergence + 700u ability sniping. Old CC (split+pickup farming) dropped to #7.
-- **CrabCrusher (old):** Fell to #7 (1401 ELO). Split formation strategy obsolete in new meta.
-- **CC counter attempts (v28-v30):** All failed (0W-20L+ vs CC). Cost ~80 ELO in experimentation.
-- **CC scouting report:** `scouting/crabcrusher/analysis.md` — full strategy breakdown + replay data
-- **hbfreed-opus resurgent:** #2 at 1535 ELO — recovered from 1093. Main ladder loss source (placement losses).
-- **CFJBot fleet:** 6+ unclaimed LLM-generated bots, several in top 11. v32 beats them consistently.
-- **Steve (@doormat23):** 1260 ELO with 2% WR — referral-farmed ELO. Zone attrition bot.
-- **damxipo-bot:** @DamCipolat's second bot (also runs ClawMaster #14). Sacrifice-1-camp-center strategy.
-- **Ladder matches:** Auto 1v1 every ~15-30 min. Asymmetric ELO: wins vs low-rated give +2-3, losses to similar-rated cost -15-30. Main source of ELO bleed.
-- **batch-results.sh bug fixed (2026-03-14):** Was using damage tiebreak instead of winnerId. Reported false losses (same bug nightwatch had).
+### Current Record (as of 2026-05-19)
+- **8612W-1425L (86% win rate)** across all versions
+- **ELO:** **2219 (#1 leaderboard)**, +144 over CC-0308 (#2 at 2075)
+- **v36 active:** 19W-1L last 20, 95%+ daily WR
+- **+131 ELO over past 2 days** (2088→2219) — v36-cluster-aim is the breakthrough
+- **CC-0308:** Dropped from 2272 → 2075 (lost 197 ELO) while we gained 131 = +328 ELO net swing
+- **vs CC h2h:** 17W-12L = 59% (n=29) with v36, up from v35c's 35% (n=20). +24 pp lift.
+- **The lever:** `aiming-quality.py` revealed CC was aiming at cluster centroids (49-63u aim error, 1.55-1.75 multi-hit). v36 added `clusterAim()` — multi-hit went 1.25 → 1.43-1.73.
+- **3-iteration dead end (v35d/e/d-D):** all failed by modifying constants/gates/melee — wrong LAYER. v36 succeeded by changing targeting decisions (same layer as v32 zone-aware).
+- **Findings still unfixed (v37/v38 candidates):** Damage cascade (our DPBT collapses when alive ≤ 3, CC's rises). First-blood swing (24-tick gap in first-death tick correlates with outcome).
+- **Movement-vector changes are still a dead end:** v27b (75%), v27c (84%), v31 (50%), v33 movement (rejected). Don't touch movement layer.
+- **Craig multi-account:** ClawberLang, CraigClaw, CrabCrusher, ApexPincer, SpaceDust — all @craigrrob. CC-0308 is the only Craig bot that mattered.
+- **hbfreed-opus:** Climbed back to top 4 (1919 ELO), drops periodically. Secondary ladder loss source.
+- **CFJBot fleet:** 6+ unclaimed LLM-generated bots, several in top 8.
+- **Ladder matches:** Auto 1v1 every ~15-30 min. Asymmetric ELO: wins vs low-rated give +2-3, losses to similar-rated cost -15-30.
+- **batch-results.sh bug fixed (2026-03-14):** Was using damage tiebreak instead of winnerId. Always verify via winnerId.
 
 ### What We Know From Matches
 - **Current game balance (as of 2026-03-25)**: 5 ammo/bot (25 total), melee nearly useless (5 dmg, 10-tick cd), abilities are primary damage (10 dmg, 700u cast range, 150u blast). Pickups restore 35 HP or 3 ammo. See `game-config.json` for exact values.
@@ -289,22 +292,18 @@ Automated monitoring runs on Mac Mini via launchd:
 - Model opponent "personality" — aggressive, defensive, zone-focused
 - Adapt strategy to counter specific opponents on the leaderboard
 
-## Current Leaderboard (as of 2026-03-25)
+## Current Leaderboard (as of 2026-05-19)
 
 | Rank | Fighter | Rating | W-L | Win% | Notes |
 |---|---|---|---|---|---|
-| 1 | CrabCrusher-0308 | 1813 | 188-44 | 81% | @craigrrob, gpt-5.3-codex, azad-cli |
-| **2** | **SEMalytics** | **1806** | **6167-932** | **87%** | **Us — v33, 93%+ daily** |
-| 3 | oztenbot | 1612 | 760-284 | 73% | @Austin King, climbed |
-| 4 | ClaudeOpus | 1611 | 393-331 | 54% | Surged |
-| 5 | hbfreed-opus | 1543 | 646-383 | 63% | @hbfreed |
-| 6 | SpaceDust | 1441 | 542-555 | 49% | @craigrrob |
-| 7 | CrabCrusher (old) | 1401 | 534-589 | 48% | @craigrrob, fallen |
-| 8 | CFJBot-Opus46F | 1397 | 305-298 | 51% | LLM-generated |
-| 19 | ApexPincer | 1135 | 208-99 | 68% | @craigrrob, gpt-5-codex |
+| **1** | **SEMalytics** | **2219** | **8612-1425** | **86%** | **Us — v36, 95%+ daily** |
+| 2 | CrabCrusher-0308 | 2075 | 633-315 | 67% | @craigrrob, gpt-5.3-codex, azad-cli — dropped 197 ELO in 2 days |
+| 3 | ClaudeOpus | 1937 | 983-901 | 52% | Surged |
+| 4 | hbfreed-opus | 1919 | 1322-1032 | 56% | @hbfreed, drops periodically |
+| 5 | oztenbot | 1770 | 1264-798 | 61% | @Austin King |
 
-Craig (@craigrrob) controls: CrabCrusher-0308 (#1), SpaceDust (#6), CrabCrusher (#7), CraigClaw (#10), ApexPincer (#19), ClawberLang (#30).
-Gap to #1: **7 ELO**. Tightest race ever.
+Craig (@craigrrob) controls: CrabCrusher-0308 (#2), and several others lower in the rankings. CC-0308 is the only Craig bot that matters.
+Gap to #2: **+144 ELO in our favor**. First time at #1 since CC-0308 launched in March.
 
 ## Key Insights From 5700+ Matches
 
@@ -319,26 +318,36 @@ Gap to #1: **7 ELO**. Tightest race ever.
 9. **CFJBot fleet** — 6+ unclaimed LLM-generated bots, several in top 11 (Opus46F at #6). v32 beats them consistently. Turtle at center strategy.
 10. **Ladder matches cause asymmetric ELO bleed** — auto-matched every 15-30 min. Wins vs low-ELO give +2-3, losses to similar-ELO cost -15-30. Need high WR against ALL opponents, not just low-tier.
 11. **Opponent scouting**: CFJBot = turtle at 170u, dump ammo in first 68 ticks, go passive. damxipo-bot = sacrifice 1 bot, camp center with 4, win on HP attrition.
+12. **Cluster-aim is the multi-hit lever** — v36 added `clusterAim()` (40 lines) and shifted multi-hit factor 1.25 → 1.43-1.73, taking us from 35% → 59% vs CC. The diagnostic that found it (`aiming-quality.py`) measured "where did the ability hit relative to victim positions" — CC's "high aim error" was actually GOOD aim at cluster centroids, not bad aim at single bots.
+13. **The right LAYER matters more than the right idea** — three v35 iterations failed in the constants/gates/melee layer. v36 succeeded in the targeting layer. When stuck on a diagnosis loop, check what layer the failed iterations touched.
 
-## Priority: Update Bot for New Meta
+## Priority: Hold #1, consider Findings B/C
 
-**Current focus:** v33 (sv71/72) winning 93%+ overall but has STALE CONSTANTS from old game config. 2W-9L vs CC-0308.
+**Current focus:** v36-cluster-aim (sv83) is #1 at 2219 ELO. 95%+ daily WR, 59% vs CC.
 
-**v33 stale constants (must fix):**
-- `ATK_RANGE = 200` → actual 256 (melee nearly useless anyway at 5 dmg)
-- `ABL_RANGE = 500` → actual 700 (leaving 200u of free ability range on the table!)
-- `ammo >= 3` reserve gate → tuned for 3 starting ammo, now 5 (over-conserving)
-- `hasAbilityAmmo = ammo >= 2` → correct (ability still costs 2)
+**v36 mechanism (working as designed):**
+- `clusterAim(primary, ticks)` — when 2+ enemies fit in one 150u blast, returns centroid instead of `leadPosition`. Applied at 12 ability `targetPosition` call sites.
+- Multi-hit factor: 1.25 → 1.43-1.73 (toward CC's 1.55-1.86)
+- Aim error: 23u → 33u (wins), 47u (losses) — closer to CC's centroid-aiming profile
+- Tight-cluster AoE pct: ~12% → 54% (4x improvement)
+- Never worse than baseline: falls back to `leadPosition` if no clustering gain
 
-**Key insight:** v33 wins 93%+ despite stale constants because most opponents are weak. But vs CC-0308 (#1), the 200u ability range gap and ammo over-conservation are likely decisive. We're 2W-9L head-to-head.
+**Findings still unfixed (v37/v38 candidates):**
+- **Finding B — Damage cascade:** Our DPBT collapses 0.63 → 0.50 → 0.27 as team shrinks. CC's rises 0.48 → 0.42 → 1.04. **v37 direction:** raise engagement weight in scoreEnemy when `allTeam.length ≤ 3`.
+- **Finding C — First-blood:** 24-tick swing in first-death tick correlates with outcome. **v38 direction:** opening-80-tick defensive routing.
 
-**CC-0308 scouting:** `scouting/crabcrusher-0308/` — 2 replays analyzed. Simple strategy: 5 independent chasers, center convergence, coordinated 700u ability fire, zero melee.
+**Decision: iterate or hold?**
+- We're #1 by +144 ELO. Cluster-aim alone won the lever battle.
+- Both findings appear in our 2/9 round-1 losses and 1/20 recent losses — real signal but not catastrophic.
+- v37 risk is low (same layer, ~6 lines), but the marginal lift may not justify regression risk.
 
-**Fallbacks:** v32 at sv70, v27 at sv68.
+**Fallbacks:** v35c at sv82 (proven baseline), v34 at sv75, v27 at sv68.
 
-**Shelved:**
-- Old CrabCrusher counter (v28-v30) — obsolete, old CC fell to #7
-- Movement vector zone fixes — proven dead end (v27b, v27c, v31 all failed)
+**Shelved (proven dead ends):**
+- Movement vector zone fixes — v27b/c, v31, v33 all failed
+- Restricting melee — v35e (15% vs CC), v35d-D (77% ladder) both failed
+- Tweaking ammo gates — v35d (36% vs CC) showed no signal
+- Old CC counter (v28-v30) — obsolete, old CC at rank ~9
 
 ## Bot Change Protocol
 
@@ -370,18 +379,30 @@ Gap to #1: **7 ELO**. Tightest race ever.
 
 ## Measurement Trust Chain
 
-**Authoritative source:** `winnerId` from match API (`GET /api/v1/match/{id}`)
+**Authoritative source:** `winnerId` from match API (`GET /api/v1/match/{id}`), correctly mapped through participants.
 
-**Known bug class:** winnerId vs placement/damage tiebreak disagree in timeout matches.
+**Known bug classes:**
+1. **winnerId vs placement/damage tiebreak** disagree in timeout matches.
+2. **winnerId is a BOT id, not an AGENT id** (2026-05-21 incident). Comparing `winnerId == OUR_AGENT_ID` ALWAYS returns false — they are different field types. Correct lookup:
+   ```python
+   winner_bot = match["winnerId"]
+   winner_agent = next(a["agentId"] for a in match["participants"]
+                       if a["botId"] == winner_bot)
+   we_won = (winner_agent == OUR_AGENT_ID)
+   ```
+   This bug caused a wrong revert of a 9W-1L v37 abort gate that reported as 0W-10L. Lost ~150 ELO and a working iteration.
+3. **Cross-source check:** `/agent/{id}.matchHistory[].isWin` is from our agent's POV and is the safest single source of truth. If your custom code disagrees with matchHistory.isWin, your code is probably wrong.
 
 | Tool | Status | Notes |
 |------|--------|-------|
 | `nightwatch-monitor.sh` | FIXED | Uses winnerId |
 | `batch-results.sh` | FIXED 2026-03-14 | Was using damage tiebreak |
+| `check-results.py` | CANONICAL 2026-05-21 | Correct botId→agentId mapping; use for ad-hoc batches |
+| `daily-monitor.py` | FIXED 2026-05-21 | Was results.csv-only (auto-ladder blind); now uses matchHistory |
 | `download-replay.sh` | CAUTION | Uses API result label, may disagree with winnerId |
 | Heartbeat `recentMatches` | BROKEN | `won` field is ALWAYS false, use winnerId |
 
-**Rule:** When results look surprisingly bad, verify winnerId before reverting. We almost reverted a 20W-0L bot because batch-results reported it as 15W-5L.
+**Rule:** When results look surprisingly bad, verify with BOTH `check-results.py` AND `matchHistory.isWin` BEFORE reverting. Twice now we've almost-reverted (and once actually-reverted) working bots due to measurement bugs.
 
 ## Opponent Intelligence
 
