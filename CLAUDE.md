@@ -79,24 +79,23 @@ The submit script reads a `.js` file and sends its contents as a string. That JS
 | v35d | sv77 | v35d-ammo-relax.js | Gate relax (ammo>=3, hp<80) — FAILED, 36% vs CC | 9W-16L vs CC |
 | v35e | sv79 | v35e-pickup-commit.js | Removed melee from pickup branch — FAILED, 15% vs CC | 3W-17L vs CC |
 | v35d-D | sv81 | v35d-D-melee-killshot.js | Gate melee to kill-shot only — FAILED, 77% ladder abort | 7W-2L ladder |
-| **v36** | **sv83** | **v36-cluster-aim.js** | **clusterAim() — centroid targeting at 12 ability sites** | **17W-12L vs CC (59%), #1 leaderboard** |
+| v36 | sv83,85 | v36-cluster-aim.js | clusterAim() — centroid targeting at 12 ability sites | 17W-12L vs CC (59% n=29 initial), 43% n=142 7d settled |
+| **v37** | **sv86** | **v37-cascade-fire.js** | **Cascade ammo relax: floor 4→2 when allTeam<5 OR killsThem≥1** | **23W-7L 48h (77%), 14W-0L vs non-CC, 9W-7L vs CC (56% n=16)** |
 
-### Current Record (as of 2026-05-19)
-- **8612W-1425L (86% win rate)** across all versions
-- **ELO:** **2219 (#1 leaderboard)**, +144 over CC-0308 (#2 at 2075)
-- **v36 active:** 19W-1L last 20, 95%+ daily WR
-- **+131 ELO over past 2 days** (2088→2219) — v36-cluster-aim is the breakthrough
-- **CC-0308:** Dropped from 2272 → 2075 (lost 197 ELO) while we gained 131 = +328 ELO net swing
-- **vs CC h2h:** 17W-12L = 59% (n=29) with v36, up from v35c's 35% (n=20). +24 pp lift.
-- **The lever:** `aiming-quality.py` revealed CC was aiming at cluster centroids (49-63u aim error, 1.55-1.75 multi-hit). v36 added `clusterAim()` — multi-hit went 1.25 → 1.43-1.73.
-- **3-iteration dead end (v35d/e/d-D):** all failed by modifying constants/gates/melee — wrong LAYER. v36 succeeded by changing targeting decisions (same layer as v32 zone-aware).
-- **Findings still unfixed (v37/v38 candidates):** Damage cascade (our DPBT collapses when alive ≤ 3, CC's rises). First-blood swing (24-tick gap in first-death tick correlates with outcome).
-- **Movement-vector changes are still a dead end:** v27b (75%), v27c (84%), v31 (50%), v33 movement (rejected). Don't touch movement layer.
+### Current Record (as of 2026-05-23)
+- **8728W-1456L (86% win rate)** across all versions
+- **ELO:** **2233 (#1 leaderboard)**, +87 over CC-0308 (#2 at 2146)
+- **v37 active (sv86, 48h live):** 23W-7L (77%), 14W-0L vs non-CC, 9W-7L vs CC (56%)
+- **v37 cascade-fire is the +13pp lever:** vs CC h2h moved 43% (v36 n=142) → 56% (v37 n=16). Wilson CI wide but direction positive, ELO trajectory confirms.
+- **v37 history:** wrongly reverted on 2026-05-21 due to botId-vs-agentId measurement bug (see Measurement Trust Chain). Real abort gate was 9W-1L, not 0W-10L. Re-shipped as sv86 same day after `check-results.py` written. Cost: ~150 ELO from the panicked revert + 20-match force-CC self-inflicted batch.
+- **v36 → v37 takeaway:** Cluster-aim (v36) brought damage parity but didn't move CC h2h structurally. v37's cascade-state ammo relax (floor 4→2 when allTeam<5 OR killsThem≥1) appears to fix the fire-rate gap during cascades (CC was firing 12.6 abilities/match in our losses vs our 8.2).
+- **Movement-vector changes remain a dead end:** v27b (75%), v27c (84%), v31 (50%), v33 movement (rejected). Don't touch movement layer.
+- **CC-0308 trajectory:** 2272 → 2146 over 5 days (-126 ELO) while we went 2088 → 2233 (+145). Net swing **+271 ELO**.
 - **Craig multi-account:** ClawberLang, CraigClaw, CrabCrusher, ApexPincer, SpaceDust — all @craigrrob. CC-0308 is the only Craig bot that mattered.
-- **hbfreed-opus:** Climbed back to top 4 (1919 ELO), drops periodically. Secondary ladder loss source.
+- **hbfreed-opus:** #3 at ~1954, drops periodically. Secondary ladder loss source.
 - **CFJBot fleet:** 6+ unclaimed LLM-generated bots, several in top 8.
-- **Ladder matches:** Auto 1v1 every ~15-30 min. Asymmetric ELO: wins vs low-rated give +2-3, losses to similar-rated cost -15-30.
-- **batch-results.sh bug fixed (2026-03-14):** Was using damage tiebreak instead of winnerId. Always verify via winnerId.
+- **Ladder matches:** Auto 1v1 every ~15-30 min. Now that we're #1, auto-ladder pairs us with CC almost exclusively (24h opponent breakdown was 100% CC).
+- **Measurement bugs that cost ELO:** batch-results.sh damage-tiebreak (fixed 2026-03-14), daily-monitor.py results.csv-blind (fixed 2026-05-21), winnerId-is-botId-not-agentId (documented 2026-05-21). See Measurement Trust Chain section.
 
 ### What We Know From Matches
 - **Current game balance (as of 2026-03-25)**: 5 ammo/bot (25 total), melee nearly useless (5 dmg, 10-tick cd), abilities are primary damage (10 dmg, 700u cast range, 150u blast). Pickups restore 35 HP or 3 ammo. See `game-config.json` for exact values.
@@ -292,18 +291,18 @@ Automated monitoring runs on Mac Mini via launchd:
 - Model opponent "personality" — aggressive, defensive, zone-focused
 - Adapt strategy to counter specific opponents on the leaderboard
 
-## Current Leaderboard (as of 2026-05-19)
+## Current Leaderboard (as of 2026-05-23)
 
 | Rank | Fighter | Rating | W-L | Win% | Notes |
 |---|---|---|---|---|---|
-| **1** | **SEMalytics** | **2219** | **8612-1425** | **86%** | **Us — v36, 95%+ daily** |
-| 2 | CrabCrusher-0308 | 2075 | 633-315 | 67% | @craigrrob, gpt-5.3-codex, azad-cli — dropped 197 ELO in 2 days |
-| 3 | ClaudeOpus | 1937 | 983-901 | 52% | Surged |
-| 4 | hbfreed-opus | 1919 | 1322-1032 | 56% | @hbfreed, drops periodically |
-| 5 | oztenbot | 1770 | 1264-798 | 61% | @Austin King |
+| **1** | **SEMalytics** | **2233** | **8728-1456** | **86%** | **Us — v37 sv86, 77% over 48h, 56% vs CC** |
+| 2 | CrabCrusher-0308 | 2146 | 669-346 | 66% | @craigrrob, gpt-5.3-codex, azad-cli — lost 126 ELO since 5/18 |
+| 3 | hbfreed-opus | 1954 | 1381-1082 | 56% | @hbfreed, drops periodically |
+| 4 | ClaudeOpus | 1916 | 1029-956 | 52% | Surged |
+| 5 | CFJBot--Opus46F-Velocity | 1780 | 773-777 | 50% | LLM-generated fleet |
+| 6 | oztenbot | 1756 | 1296-830 | 61% | @Austin King |
 
-Craig (@craigrrob) controls: CrabCrusher-0308 (#2), and several others lower in the rankings. CC-0308 is the only Craig bot that matters.
-Gap to #2: **+144 ELO in our favor**. First time at #1 since CC-0308 launched in March.
+Gap to #2: **+87 ELO in our favor**. We dropped to #2 briefly on 2026-05-21 after the v37-revert / force-CC self-inflicted ELO loss, then climbed back to #1 over ~36h as v37's cascade-fire generated +13pp on CC h2h.
 
 ## Key Insights From 5700+ Matches
 
@@ -321,33 +320,36 @@ Gap to #2: **+144 ELO in our favor**. First time at #1 since CC-0308 launched in
 12. **Cluster-aim is the multi-hit lever** — v36 added `clusterAim()` (40 lines) and shifted multi-hit factor 1.25 → 1.43-1.73, taking us from 35% → 59% vs CC. The diagnostic that found it (`aiming-quality.py`) measured "where did the ability hit relative to victim positions" — CC's "high aim error" was actually GOOD aim at cluster centroids, not bad aim at single bots.
 13. **The right LAYER matters more than the right idea** — three v35 iterations failed in the constants/gates/melee layer. v36 succeeded in the targeting layer. When stuck on a diagnosis loop, check what layer the failed iterations touched.
 
-## Priority: Hold #1, consider Findings B/C
+## Priority: Hold #1, gather more v37 vs CC data
 
-**Current focus:** v36-cluster-aim (sv83) is #1 at 2219 ELO. 95%+ daily WR, 59% vs CC.
+**Current focus:** v37-cascade-fire (sv86) is #1 at 2233 ELO, +87 over CC.
 
-**v36 mechanism (working as designed):**
-- `clusterAim(primary, ticks)` — when 2+ enemies fit in one 150u blast, returns centroid instead of `leadPosition`. Applied at 12 ability `targetPosition` call sites.
-- Multi-hit factor: 1.25 → 1.43-1.73 (toward CC's 1.55-1.86)
-- Aim error: 23u → 33u (wins), 47u (losses) — closer to CC's centroid-aiming profile
-- Tight-cluster AoE pct: ~12% → 54% (4x improvement)
-- Never worse than baseline: falls back to `leadPosition` if no clustering gain
+**v37 mechanism (working as designed):**
+- Cascade-aware ammo reserve: `cascadeTrigger = allTeam.length < 5 || (5-enemies.length) >= 1` drops the `ammoReserveOk` floor from `ammo>=4` to `ammo>=2`.
+- Intent: match CC's mid-cascade fire rate (CC fires 12.6 ability/match in our losses; we were firing 8.2). Untouched: clusterAim() (carried from v36), movement vectors, melee, target selection.
+- Built on v36's clusterAim() at 12 ability call sites — both mechanisms compose without interference.
 
-**Findings still unfixed (v37/v38 candidates):**
-- **Finding B — Damage cascade:** Our DPBT collapses 0.63 → 0.50 → 0.27 as team shrinks. CC's rises 0.48 → 0.42 → 1.04. **v37 direction:** raise engagement weight in scoreEnemy when `allTeam.length ≤ 3`.
-- **Finding C — First-blood:** 24-tick swing in first-death tick correlates with outcome. **v38 direction:** opening-80-tick defensive routing.
+**v37 evidence (n=30 / 48h, n=16 vs CC):**
+- Total: 23W-7L (77%). All 7 losses to CC.
+- vs non-CC: **14W-0L (100%)** — no ladder regression
+- vs CC: **9W-7L (56%)** — Wilson 95% CI [33%, 76%], +13pp point-estimate over v36's 43% baseline (n=142). Direction-positive but not yet statistically conclusive on h2h alone — ELO trajectory (+92 in 24h, +87 ELO gap over CC) corroborates.
 
-**Decision: iterate or hold?**
-- We're #1 by +144 ELO. Cluster-aim alone won the lever battle.
-- Both findings appear in our 2/9 round-1 losses and 1/20 recent losses — real signal but not catastrophic.
-- v37 risk is low (same layer, ~6 lines), but the marginal lift may not justify regression risk.
+**Findings remaining (v38+ candidates):**
+- **Finding C — First-blood:** 24-tick swing in first-death tick correlates with outcome. **v38 direction:** opening-80-tick defensive routing. Mostly suppressed by v37's damage parity but still appears in losses.
+- **Tighter cascade gate:** v37's cascadeTrigger fires for ~93% of a typical match. Could test a bounded version (e.g. only relax for 60 ticks after first kill, or only when HP-ahead). Lower marginal value now that v37 is working.
 
-**Fallbacks:** v35c at sv82 (proven baseline), v34 at sv75, v27 at sv68.
+**Fallbacks:** v36 at sv85 (proven baseline), v35c at sv82, v34 at sv75, v27 at sv68.
 
 **Shelved (proven dead ends):**
 - Movement vector zone fixes — v27b/c, v31, v33 all failed
 - Restricting melee — v35e (15% vs CC), v35d-D (77% ladder) both failed
-- Tweaking ammo gates — v35d (36% vs CC) showed no signal
+- Tweaking ammo gates without cascade-state guard — v35d (36% vs CC) showed no signal
 - Old CC counter (v28-v30) — obsolete, old CC at rank ~9
+
+**Lessons from the v37-revert incident (2026-05-21):**
+- Don't compare `winnerId` (botId) against an agentId. Use `check-results.py` or `matchHistory.isWin` instead.
+- Don't force-queue many vs-CC matches just to gather h2h data — it's -10 to -20 ELO per loss. Wait for auto-ladder.
+- A 0W-N abort gate against bots we always beat should trigger "is my measurement broken?" before "is my bot broken?"
 
 ## Bot Change Protocol
 
