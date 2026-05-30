@@ -30,8 +30,8 @@ ENV_FILE = os.path.join(PROJECT_DIR, ".env")
 
 OUR_AGENT_ID = "8f1e1fcf-7e3d-4a9c-90ee-1f0296746628"
 
-TELEGRAM_BOT_TOKEN = "8697910422:AAF7nKHznBX3px2_yg-2Sm-iWK96ys5nerA"
-TELEGRAM_CHAT_ID = "7864057399"
+# Telegram creds are read from .env at call time (load_env() runs in main()).
+# Set TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID in .env (gitignored).
 
 API_BASE = "https://clawber.ai/api/v1"
 
@@ -56,13 +56,18 @@ def binomial_ci(wins, total, z=1.96):
 
 def send_telegram(text):
     """Send message via Nightwatch Patrol bot."""
+    token = os.environ.get("TELEGRAM_BOT_TOKEN", "")
+    chat = os.environ.get("TELEGRAM_CHAT_ID", "")
+    if not token or not chat:
+        print("Telegram creds missing (set TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID in .env)", file=sys.stderr)
+        return False
     data = urllib.parse.urlencode({
-        "chat_id": TELEGRAM_CHAT_ID,
+        "chat_id": chat,
         "parse_mode": "Markdown",
         "text": text,
     }).encode()
     req = urllib.request.Request(
-        f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage",
+        f"https://api.telegram.org/bot{token}/sendMessage",
         data=data,
     )
     try:
