@@ -85,15 +85,15 @@ The submit script reads a `.js` file and sends its contents as a string. That JS
 | v39 | sv89 | v39-reactive-weakness.js | Reactive weakness aim (FAILED — reduced opening DPS) | 1W-3L vs CC (25%) |
 | v39b | sv91 | v39b-wider-spread.js | HARD_SPREAD 200→250 (FAILED — lost total DPS) | 1W-2L vs CC (33%) |
 | v40 | sv93 | v40-surround-opener.js | Opening surround-enemy ring (NEUTRAL on CC) | 16W-14L vs CC (53%), 62W-0L non-CC |
-| v41 | sv94 | v41-cluster-aim-3way.js | 3-way centroid multi-hit search (extends v36 clusterAim 2→3 enemies) | settled ~50% vs CC over full sample (the 83% n=12 was small-sample variance); 29-1 non-CC |
+| v41 | sv94 | v41-cluster-aim-3way.js | 3-way centroid multi-hit search (extends v36 clusterAim 2→3 enemies) | 10-7 vs CC (59%, N=17 firmed) — within noise of the ~35% pooled ceiling; the 83% n=12 was variance; 29-1 non-CC |
 | v42 | sv95 | v42-endgame-pickup.js | v41 + 1v1 endgame pickup branch above terrain-escape (FAILED — branch misfired; CC bleed was regression-to-mean not the branch) | 2W-10L vs CC, 34-0 non-CC |
 | **v44** | **sv96** | **v44-safe-pickup-v41base.js** | **v41 base + v43 safer general-pickup gates, v42 1v1 branch REMOVED. Clean non-regressive hold-base.** | **30-match gate 29W-1L (97%), non-CC 28-0, lone loss CC** |
 
 ### Current Record (as of 2026-05-30)
 - **ELO:** **2169 (#2 leaderboard)**, −164 vs CC-0308 (#1 at 2333). #3 (hbfreed) is 134 below us — #2 hold is secure.
 - **v44 active (sv96):** 30-match confirmation gate 29W-1L (97%). Non-CC 28-0; lone loss to CC (ceiling).
-- **The v41 "83% vs CC" was a small-sample mirage.** v41 (10-2) + v42 (2-10) = 12-12 = **50% vs CC ≈ the documented ~53% architectural ceiling**. The 2026-05-30 #1→#2 drop was **regression-to-mean, not a v42 regression** — replay analysis showed v42's 1v1 branch was inert in 5/6 losses (multi-bot cascades). See memory `v42-cc-regression-to-mean`. Lesson: verify the changed code path was ACTIVE in the losses before attributing a swing to a deploy.
-- **v44 = the clean hold-base:** built by stripping v42's misfiring 1v1 branch off the v43 file, leaving v41 + v43's conservative pickup gates. No code lever has moved the CC matchup off ~50%.
+- **The CC "ceiling" is ~35%, NOT ~50% (corrected 2026-05-31, N=1146).** Full-window WR vs CC from CC's own matchHistory (authoritative, POV-flipped) = **401-745 = 35%, Wilson 95% [32-38%]**. The long-cited "~50/53% architectural ceiling" was an artifact of small CC batches (n≈10-15) that regress upward toward 50% by chance. We are a STRUCTURAL UNDERDOG to CC, not a coin-flip. The v41 "83% vs CC" was a small-sample mirage; firmed per-version windows (submit-time boundaries) put every recent version within noise of ~35% (only v37 N=40 @58% and v40 N=39 @49% even clear N≥30, and both have ±15pp CIs). The 2026-05-30 #1→#2 drop was **regression-to-mean, not a v42 regression** — v42's 1v1 branch was inert in 5/6 losses. Lesson: never act on a CC rate with N<~40; verify the changed code path was ACTIVE in the losses before attributing a swing to a deploy.
+- **v44 = the clean hold-base:** built by stripping v42's misfiring 1v1 branch off the v43 file, leaving v41 + v43's conservative pickup gates. No code lever has moved the CC matchup off its ~35% structural floor (v44 itself has only N=9 vs CC — its justification is non-CC 100%, NOT a measured CC rate).
 - **Process win:** KF strategist correctly ranked clusterAim (proven signal-addition) over center-rush (force-change, 0-for-6 history). Critic removed a measurement-confounding tiebreak pre-ship.
 - **v37 history:** wrongly reverted on 2026-05-21 due to botId-vs-agentId measurement bug (see Measurement Trust Chain). Real abort gate was 9W-1L, not 0W-10L. Re-shipped as sv86 same day after `check-results.py` written. Cost: ~150 ELO from the panicked revert + 20-match force-CC self-inflicted batch.
 - **v36 → v37 takeaway:** Cluster-aim (v36) brought damage parity but didn't move CC h2h structurally. v37's cascade-state ammo relax (floor 4→2 when allTeam<5 OR killsThem≥1) appears to fix the fire-rate gap during cascades (CC was firing 12.6 abilities/match in our losses vs our 8.2).
@@ -283,7 +283,8 @@ Automated monitoring runs on Mac Mini via launchd:
 - **Logs:** `logs/nightwatch.log`, `logs/results.csv`, `logs/leaderboard-history.csv`
 - **Script:** `scripts/nightwatch-monitor.sh`
 - Always uses the latest submitted bot version on the server
-- SSH into Mini to check: `ssh mini` then `tail ~/Scripts/clawberbot/logs/nightwatch.log`
+- **Checkout path:** `~/Scripts` is a symlink → `~/Mini` (verified 2026-06-01), so `~/Scripts/clawberbot` and `~/Mini/clawberbot` are the SAME directory. There is no separate/stale copy; either path works. Canonical: `/Users/davidpedersen/Mini/clawberbot` (what the installed launchd plists reference).
+- SSH into Mini to check: `ssh mini` then `tail ~/Mini/clawberbot/logs/nightwatch.log`
 
 ## Strategy Framework
 
@@ -303,12 +304,12 @@ Automated monitoring runs on Mac Mini via launchd:
 
 | Rank | Fighter | Rating | Notes |
 |---|---|---|---|
-| 1 | CrabCrusher-0308 | 2333 | @craigrrob — climbed back to #1 via auto-ladder as our v41/v42 CC rate regressed to ~50% |
-| **2** | **SEMalytics** | **2169** | **Us — v44 sv96, ~50% vs CC (ceiling), 28-0 non-CC** |
+| 1 | CrabCrusher-0308 | 2335 | @craigrrob — sits at #1 because they beat us ~65% h2h (we win only ~35% vs CC over N=1146); auto-ladder pairs us heavily so this caps our ceiling |
+| **2** | **SEMalytics** | **2203** | **Us — v44 sv100 (live, heartbeat-confirmed), ~35% vs CC (structural floor, N=1146), 100% non-CC** |
 | 3 | hbfreed-opus | 2035 | @hbfreed, drops periodically |
 | 4 | CFJBot--Opus46F-Velocity-Comet | 1890 | LLM-generated fleet |
 
-Gap to #1: **−164**. We held #1 briefly on 2026-05-29 (under v41, +158) on a small-sample CC win streak, then regressed to the ~50% CC ceiling and dropped back to #2 on 2026-05-30. Expect to oscillate around #1/#2: auto-ladder pairs us heavily with CC, so a 50% CC rate caps our ceiling while non-CC dominance floors it.
+Gap to #1: **−132**. We held #1 briefly on 2026-05-29 (under v41, +158) on a small-sample CC win streak, then regressed to the true ~35% CC floor and dropped back to #2 on 2026-05-30. Expect to oscillate around #1/#2: auto-ladder pairs us heavily with CC, so a ~35% CC rate caps our ceiling while non-CC dominance floors it. Reclaiming #1 durably means moving the CC rate up STRUCTURALLY, not winning a CC variance streak.
 
 ## Key Insights From 5700+ Matches
 
@@ -326,9 +327,9 @@ Gap to #1: **−164**. We held #1 briefly on 2026-05-29 (under v41, +158) on a s
 12. **Cluster-aim is the multi-hit lever — confirmed twice** — v36 added `clusterAim()` (35%→59% vs CC). v41 extended it from 2-enemy midpoints to 3-enemy centroids (53%→83% vs CC, n=12). Multi-hit improvement is the ONE reliable CC-matchup mover. The diagnostic that found v36 (`aiming-quality.py`) measured "where did the ability hit relative to victim positions" — CC's "high aim error" was actually GOOD aim at cluster centroids. When stuck on CC, improve multi-hit, not movement/gates/targeting.
 13. **The right LAYER matters more than the right idea** — three v35 iterations failed in the constants/gates/melee layer. v36 succeeded in the targeting layer. When stuck on a diagnosis loop, check what layer the failed iterations touched.
 
-## Priority: Hold #2, treat the ~50% CC ceiling as the real (structural) problem
+## Priority: Hold #2, treat the ~35% CC floor as the real (structural) problem
 
-**Current focus:** v44-safe-pickup-v41base (sv96) is the stable hold-base at #2 (~2169), confirmed 29W-1L (97%) over 30. The CC matchup is ceiling-bound at ~50% and NO code lever has moved it (v38/v39/v39b/v40 all 33-53%; v41's 83% was variance). Reclaiming #1 requires a STRUCTURAL counter to CC's 5-chaser wide formation, not another parameter/branch iteration. Strategist pass opened 2026-05-30. Fallback: v41 sv94 (prefer over v42 sv95, which carries the misfiring 1v1 branch).
+**Current focus:** v44-safe-pickup-v41base (sv100, live/heartbeat-confirmed) is the stable hold-base at #2 (~2203). The CC matchup sits at a **~35% structural floor (401-745, N=1146, Wilson [32-38%])** — NOT the ~50% previously documented — and NO code lever has moved it (v38/v39/v39b/v40 all 29-53% on small N; v41's 83% was variance; firmed per-version windows all sit within noise of ~35%). Reclaiming #1 requires a STRUCTURAL counter to CC's 5-chaser wide formation, not another parameter/branch iteration. Strategist pass opened 2026-05-30, reframed 2026-05-31 with corrected ceiling. Fallback: v41 sv94 (prefer over v42 sv95, which carries the misfiring 1v1 branch).
 
 **DO NOT** attribute ELO swings to the latest deploy without first checking the changed code path was active in the losses (the 2026-05-30 v42 false-alarm and the 2026-05-21 v37 revert both came from this trap).
 

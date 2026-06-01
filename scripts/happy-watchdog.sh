@@ -2,14 +2,23 @@
 # Happy tmux watchdog for clawberbot — launchd keeps this running
 set -uo pipefail
 
+# DEPRECATED: Use happy-orchestrator.sh instead. Orchestrator will auto-kill this.
+# Pause switch: respect /tmp/happy-paused
+PAUSE_FILE="/tmp/happy-paused"
+if [ -f "$PAUSE_FILE" ]; then
+    echo "[$(date -u +%FT%TZ)] PAUSED ($(cat "$PAUSE_FILE" 2>/dev/null)). Sleeping 60s." >> "/Users/davidpedersen/agent-workflow/happy-clawberbot-watchdog.log"
+    sleep 60
+    exit 0
+fi
+
 SESSION="clawberbot"
-WORKDIR="$HOME/Scripts/clawberbot"
+WORKDIR="$HOME/Mini/clawberbot"   # canonical path (~/Scripts is a symlink to ~/Mini — same dir)
 LOG="$HOME/agent-workflow/clawberbot-happy.log"
 TMUX="/opt/homebrew/bin/tmux"
 HAPPY="/opt/homebrew/bin/happy"
 LOCKFILE="/tmp/clawberbot-watchdog.lock"
 
-source ~/.zshrc 2>/dev/null || true
+set +u; source ~/.zshrc 2>/dev/null || true; set -u
 
 log() { echo "[$(date -u +%FT%TZ)] $1" >> "$LOG"; }
 

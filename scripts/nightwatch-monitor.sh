@@ -128,6 +128,8 @@ run_match() {
 import sys, json
 d = json.load(sys.stdin)
 agent = '$OUR_AGENT'
+CC = 'edae262d-b7e4-4dd0-a8d0-3f34cb7c0a90'                 # CrabCrusher stable botId prefix
+WATCH_NAMES = ('hbfreed','oztenbot','claudeopus','cfjbot','apexpincer','crabcrusher')
 parts = d.get('participants', [])
 us = next((p for p in parts if p['agentId'] == agent), None)
 them = next((p for p in parts if p['agentId'] != agent), None)
@@ -135,12 +137,15 @@ if us and them:
     ud = us['stats']['damageDealt']
     td = them['stats']['damageDealt']
     won = d.get('winnerId') == us.get('botId')
-    print(f\"{'WIN' if won else 'LOSS'}|{them.get('agentName','?')}|{us['stats']['kills']}|{ud}|{them['stats']['kills']}|{td}\")
+    name = them.get('agentName','?')
+    bid = str(them.get('botId',''))
+    watch = bid.startswith(CC) or any(n in name.lower() for n in WATCH_NAMES)   # top-tier opponents
+    print(f\"{'WIN' if won else 'LOSS'}|{name}|{us['stats']['kills']}|{ud}|{them['stats']['kills']}|{td}|{'WATCH' if watch else '-'}\")
 else:
-    print('UNKNOWN|||||||')
-" 2>/dev/null || echo "PARSE_ERROR||||||")
+    print('UNKNOWN|||||||-')
+" 2>/dev/null || echo "PARSE_ERROR|||||||-")
 
-  IFS='|' read -r OUTCOME OPPONENT OUR_K OUR_D THEIR_K THEIR_D <<< "$RESULT"
+  IFS='|' read -r OUTCOME OPPONENT OUR_K OUR_D THEIR_K THEIR_D WATCH <<< "$RESULT"
 
   if [[ "$OUTCOME" == "WIN" ]]; then
     TOTAL_WINS=$((TOTAL_WINS + 1))
@@ -150,19 +155,22 @@ else:
 
   log "MATCH [$MATCH_NUM]: $MATCH_ID — $OUTCOME vs $OPPONENT (us: ${OUR_K}K/${OUR_D}dmg, them: ${THEIR_K}K/${THEIR_D}dmg)"
 
-  # Auto-capture losses: save match JSON + download replay
-  if [[ "$OUTCOME" == "LOSS" ]]; then
-    local LOSS_JSON="$BASE_DIR/match-history/loss-${MATCH_ID}.json"
-    echo "$MATCH_RESP" | python3 -m json.tool > "$LOSS_JSON" 2>/dev/null || true
-    log "LOSS-CAPTURE: saved match JSON → $LOSS_JSON"
+  # Auto-capture: ALL losses + ANY watchlist match (wins INCLUDED). Fixes the
+  # losses-only corpus gap — W/L lift analysis needs matched wins (esp. vs CC).
+  if [[ "$OUTCOME" == "LOSS" || "${WATCH:-}" == "WATCH" ]]; then
+    local TAG; TAG=$([[ "$OUTCOME" == "WIN" ]] && echo "win" || echo "loss")
+    local OPP_SAFE="${OPPONENT// /_}"; OPP_SAFE="${OPP_SAFE//\//_}"
+    local M_JSON="$BASE_DIR/match-history/${TAG}-${MATCH_ID}.json"
+    echo "$MATCH_RESP" | python3 -m json.tool > "$M_JSON" 2>/dev/null || true
+    log "CAPTURE[$TAG]: saved match JSON → $(basename "$M_JSON")"
 
     local REPLAY_URL
     REPLAY_URL=$(echo "$MATCH_RESP" | python3 -c "import sys,json; print(json.load(sys.stdin).get('replayUrl',''))" 2>/dev/null || echo "")
     if [[ -n "$REPLAY_URL" ]]; then
-      local REPLAY_FILE="$BASE_DIR/match-history/replay-loss-${OPPONENT}-${MATCH_ID:0:8}.json"
+      local REPLAY_FILE="$BASE_DIR/match-history/replay-${TAG}-${OPP_SAFE}-${MATCH_ID:0:8}.json"
       curl -sf "$REPLAY_URL" -o "$REPLAY_FILE" 2>/dev/null && \
-        log "LOSS-CAPTURE: saved replay → $REPLAY_FILE" || \
-        log "LOSS-CAPTURE: replay download failed for $MATCH_ID"
+        log "CAPTURE[$TAG]: saved replay → $(basename "$REPLAY_FILE")" || \
+        log "CAPTURE[$TAG]: replay download failed for $MATCH_ID"
     fi
   fi
 
@@ -188,6 +196,11 @@ for MATCH_NUM in $(seq 1 $MATCHES_PER_RUN); do
     sleep "$QUEUE_DELAY"
   fi
 done
+
+# --- Retention: prune watchlist WIN captures older than 30d (losses kept indefinitely
+#     — rarer and higher analytic value). Keeps the win corpus from growing unbounded. ---
+find "$BASE_DIR/match-history" -maxdepth 1 -type f \
+  \( -name 'win-*.json' -o -name 'replay-win-*.json' \) -mtime +30 -delete 2>/dev/null || true
 
 # --- Daily game config check (once per day) ---
 CONFIG_CHECK_FLAG="$LOG_DIR/.config-checked-$(date +%Y-%m-%d)"

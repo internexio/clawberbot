@@ -8,3 +8,4 @@ logs/
 .dolt/
 *.db
 .beads-credential-key
+data/
