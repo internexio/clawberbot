@@ -1,31 +1,46 @@
 #!/bin/bash
-# Collect results for all pending matches, save wins AND losses
-# Usage: ./collect-results.sh [--wait SECONDS]
-#   --wait: how long to wait for matches to complete (default: 30s)
+# Collect results for all pending matches. Used by nightwatch-monitor.
+#
+# Usage:
+#   ./collect-results.sh                  # check pending.txt, no wait
+#   ./collect-results.sh --wait 30        # wait 30s first
+#   ./collect-results.sh --wait 30 v15    # wait 30s, check pending-v15.txt
+#
+# Prints per-match results, saves losses, appends to results CSV.
+# Completed matches are removed from the pending file.
 
-set -euo pipefail
+source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
-PENDING="$PROJECT_DIR/match-history/pending.txt"
+WAIT_TIME=0
+PENDING_NAME="pending"
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --wait) WAIT_TIME="$2"; shift 2 ;;
+        *) PENDING_NAME="$1"; shift ;;
+    esac
+done
+
+PENDING=$(pending_file "$PENDING_NAME")
 RESULTS_FILE="$PROJECT_DIR/logs/results.csv"
 
-source "$PROJECT_DIR/.env"
-
-OUR_AGENT="8f1e1fcf-7e3d-4a9c-90ee-1f0296746628"
-API_BASE="https://clawber.ai/api/v1"
-
-WAIT_TIME="${2:-30}"
-[[ "${1:-}" == "--wait" ]] && shift 2 2>/dev/null || true
-
 if [[ ! -f "$PENDING" ]]; then
-  echo "No pending matches."
-  exit 0
+    echo "No pending file: $PENDING"
+    exit 0
 fi
 
 TOTAL=$(grep -c . "$PENDING" 2>/dev/null || echo 0)
-echo "Found $TOTAL pending matches. Waiting ${WAIT_TIME}s for completion..."
-sleep "$WAIT_TIME"
+if [[ "$TOTAL" -eq 0 ]]; then
+    echo "Pending file is empty."
+    exit 0
+fi
+
+if [[ "$WAIT_TIME" -gt 0 ]]; then
+    echo "Waiting ${WAIT_TIME}s for matches to complete..."
+    sleep "$WAIT_TIME"
+fi
+
+echo "Checking $TOTAL matches from $(basename "$PENDING")..."
 
 REMAINING=""
 WINS=0
@@ -33,72 +48,54 @@ LOSSES=0
 ERRORS=0
 
 while IFS= read -r mid; do
-  [[ -z "$mid" ]] && continue
+    [[ -z "$mid" ]] && continue
+    mid=$(echo "$mid" | tr -d '[:space:]')
 
-  RESP=$(curl -s "$API_BASE/match/$mid")
-  STATUS=$(echo "$RESP" | python3 -c "import sys,json; print(json.load(sys.stdin).get('status',''))" 2>/dev/null || echo "")
+    RESP=$(clawber_get "/match/$mid" || echo "")
+    if [[ -z "$RESP" ]]; then
+        echo "  ? $mid — API error"
+        REMAINING="$REMAINING$mid"$'\n'
+        ((ERRORS++)) || true
+        continue
+    fi
 
-  if [[ "$STATUS" != "completed" ]]; then
-    echo "  ⏳ $mid — still $STATUS"
-    REMAINING="$REMAINING$mid"$'\n'
-    continue
-  fi
+    PARSED=$(parse_match "$RESP")
+    IFS='|' read -r OUTCOME OPPONENT OUR_K OUR_D THEIR_K THEIR_D REPLAY <<< "$PARSED"
 
-  # Parse result
-  INFO=$(echo "$RESP" | python3 -c "
-import sys, json
-d = json.load(sys.stdin)
-agent = '$OUR_AGENT'
-parts = d.get('participants', [])
-us = next((p for p in parts if p['agentId'] == agent), None)
-them = next((p for p in parts if p['agentId'] != agent), None)
-if us and them:
-    won = d.get('winnerId') == us.get('botId')
-    result = 'WIN' if won else 'LOSS'
-    opp = them.get('agentName', '?')
-    uk = us['stats']['kills']
-    ud = us['stats']['damageDealt']
-    tk = them['stats']['kills']
-    td = them['stats']['damageDealt']
-    replay = d.get('replayUrl', '')
-    print(f'{result}|{opp}|{uk}|{ud}|{tk}|{td}|{replay}')
-else:
-    print('ERROR||||||')
-" 2>/dev/null || echo "ERROR||||||")
+    if [[ "$OUTCOME" == "WIN" ]]; then
+        echo "  W $mid vs $OPPONENT (${OUR_K}K/${OUR_D}d vs ${THEIR_K}K/${THEIR_D}d)"
+        ((WINS++)) || true
+    elif [[ "$OUTCOME" == "LOSS" ]]; then
+        echo "  L $mid vs $OPPONENT (${OUR_K}K/${OUR_D}d vs ${THEIR_K}K/${THEIR_D}d)"
+        echo "    Replay: $REPLAY"
+        ((LOSSES++)) || true
+        # Save loss JSON
+        echo "$RESP" > "$PROJECT_DIR/match-history/loss-${mid}.json" 2>/dev/null
+    elif [[ "$OUTCOME" == "PENDING" || "$OUTCOME" == "RUNNING" ]]; then
+        REMAINING="$REMAINING$mid"$'\n'
+    else
+        echo "  ? $mid — parse error"
+        REMAINING="$REMAINING$mid"$'\n'
+        ((ERRORS++)) || true
+    fi
 
-  IFS='|' read -r OUTCOME OPPONENT OUR_K OUR_D THEIR_K THEIR_D REPLAY <<< "$INFO"
+    # Append to results CSV (only completed)
+    if [[ "$OUTCOME" == "WIN" || "$OUTCOME" == "LOSS" ]]; then
+        TS=$(date -u +%FT%TZ)
+        echo "$TS,$mid,$OUTCOME,$OPPONENT,$OUR_K,$OUR_D,$THEIR_K,$THEIR_D," >> "$RESULTS_FILE"
+    fi
 
-  if [[ "$OUTCOME" == "WIN" ]]; then
-    echo "  ✅ $mid — WIN vs $OPPONENT (${OUR_K}K/${OUR_D}d vs ${THEIR_K}K/${THEIR_D}d)"
-    ((WINS++)) || true
-  elif [[ "$OUTCOME" == "LOSS" ]]; then
-    echo "  ❌ $mid — LOSS vs $OPPONENT (${OUR_K}K/${OUR_D}d vs ${THEIR_K}K/${THEIR_D}d)"
-    echo "     Replay: $REPLAY"
-    ((LOSSES++)) || true
-
-    # Save full loss JSON for analysis
-    echo "$RESP" | python3 -m json.tool > "$PROJECT_DIR/match-history/loss-${mid}.json" 2>/dev/null
-  else
-    echo "  ⚠️  $mid — parse error"
-    ((ERRORS++)) || true
-  fi
-
-  # Append to results CSV
-  TS=$(date -u +%FT%TZ)
-  echo "$TS,$mid,$OUTCOME,$OPPONENT,$OUR_K,$OUR_D,$THEIR_K,$THEIR_D," >> "$RESULTS_FILE"
-
-  # Save match JSON
-  echo "$RESP" > "$PROJECT_DIR/match-history/$(date +%Y-%m-%d)-${mid}.json" 2>/dev/null
-
-  sleep 0.2
+    sleep 0.15
 done < "$PENDING"
 
 echo -n "$REMAINING" > "$PENDING"
+
+PLAYED=$((WINS + LOSSES))
+STILL=$(grep -c . "$PENDING" 2>/dev/null || echo 0)
 
 echo ""
 echo "=== Summary ==="
 echo "Wins:   $WINS"
 echo "Losses: $LOSSES"
-echo "Errors: $ERRORS"
-STILL=$(grep -c . "$PENDING" 2>/dev/null || echo 0)
+[[ "$ERRORS" -gt 0 ]] && echo "Errors: $ERRORS"
 echo "Still pending: $STILL"

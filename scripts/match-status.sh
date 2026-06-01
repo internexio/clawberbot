@@ -1,52 +1,59 @@
 #!/bin/bash
-set -euo pipefail
+# Check a single match result.
+#
+# Usage:
+#   ./match-status.sh <matchId>           # show summary + raw JSON
+#   ./match-status.sh <matchId> --raw     # raw JSON only
+#   ./match-status.sh <matchId> --save    # save to match-history/
 
-# Check match status/results
-# Usage: ./match-status.sh <matchId>
-#        ./match-status.sh --pending  (check all pending matches)
+source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
+MATCH_ID="${1:?Usage: match-status.sh <matchId> [--raw] [--save]}"
+RAW=false
+SAVE=false
+for arg in "$@"; do
+    case "$arg" in
+        --raw) RAW=true ;;
+        --save) SAVE=true ;;
+    esac
+done
 
-check_match() {
-    local MATCH_ID="$1"
-    local RESPONSE
-    RESPONSE=$(curl -s "https://clawber.ai/api/v1/match/$MATCH_ID")
+RESP=$(clawber_get "/match/$MATCH_ID")
 
-    local STATUS
-    STATUS=$(echo "$RESPONSE" | python3 -c "import sys,json; print(json.load(sys.stdin).get('status','unknown'))" 2>/dev/null)
+if [[ -z "$RESP" ]]; then
+    echo "ERROR: Failed to fetch match $MATCH_ID"
+    exit 1
+fi
 
-    if [ "$STATUS" = "completed" ]; then
-        echo "$RESPONSE" | python3 -m json.tool
+if [[ "$RAW" == true ]]; then
+    echo "$RESP" | python3 -m json.tool
+    exit 0
+fi
 
-        # Save result
-        local DATE
-        DATE=$(date +%Y-%m-%d)
-        echo "$RESPONSE" > "$PROJECT_DIR/match-history/${DATE}-${MATCH_ID}.json"
-        echo "  → Saved to match-history/${DATE}-${MATCH_ID}.json"
-    else
-        echo "Match $MATCH_ID: $STATUS"
-    fi
-}
+# Parse and show summary
+PARSED=$(parse_match "$RESP")
+IFS='|' read -r OUTCOME OPPONENT OUR_K OUR_D THEIR_K THEIR_D REPLAY <<< "$PARSED"
 
-if [ "${1:-}" = "--pending" ]; then
-    PENDING="$PROJECT_DIR/match-history/pending.txt"
-    [ -f "$PENDING" ] || { echo "No pending matches"; exit 0; }
+STATUS=$(echo "$RESP" | python3 -c "import sys,json; print(json.load(sys.stdin).get('status','?'))" 2>/dev/null)
 
-    REMAINING=""
-    while IFS= read -r mid; do
-        [ -z "$mid" ] && continue
-        STATUS=$(curl -s "https://clawber.ai/api/v1/match/$mid" | python3 -c "import sys,json; print(json.load(sys.stdin).get('status','unknown'))" 2>/dev/null)
-        if [ "$STATUS" = "completed" ]; then
-            check_match "$mid"
-        else
-            echo "Match $mid: $STATUS (still pending)"
-            REMAINING="$REMAINING$mid"$'\n'
-        fi
-    done < "$PENDING"
+if [[ "$STATUS" != "completed" ]]; then
+    echo "Match $MATCH_ID: $STATUS"
+    exit 0
+fi
 
-    echo -n "$REMAINING" > "$PENDING"
-else
-    MATCH_ID="${1:?Usage: match-status.sh <matchId> | --pending}"
-    check_match "$MATCH_ID"
+echo "$OUTCOME vs $OPPONENT"
+echo "  Us:   ${OUR_K} kills, ${OUR_D} damage"
+echo "  Them: ${THEIR_K} kills, ${THEIR_D} damage"
+
+if [[ -n "$REPLAY" ]]; then
+    echo "  Replay: $REPLAY"
+fi
+
+echo "  Watch: https://clawber.ai/match/$MATCH_ID"
+
+if [[ "$SAVE" == true ]]; then
+    DATE=$(date +%Y-%m-%d)
+    FPATH="$PROJECT_DIR/match-history/${DATE}-${MATCH_ID}.json"
+    echo "$RESP" | python3 -m json.tool > "$FPATH"
+    echo "  Saved: $FPATH"
 fi

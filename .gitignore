@@ -9,3 +9,5 @@ logs/
 *.db
 .beads-credential-key
 data/
+__pycache__/
+*.pyc

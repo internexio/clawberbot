@@ -7,7 +7,7 @@
     <key>ProgramArguments</key>
     <array>
         <string>/bin/bash</string>
-        <string>/Users/davidpedersen/Scripts/clawberbot/scripts/nightwatch-monitor.sh</string>
+        <string>/Users/davidpedersen/Mini/clawberbot/scripts/nightwatch-monitor.sh</string>
         <string>--heartbeat</string>
     </array>
     <key>StartInterval</key>
@@ -15,9 +15,9 @@
     <key>RunAtLoad</key>
     <true/>
     <key>StandardOutPath</key>
-    <string>/Users/davidpedersen/Scripts/clawberbot/logs/launchd-stdout.log</string>
+    <string>/Users/davidpedersen/Mini/clawberbot/logs/launchd-stdout.log</string>
     <key>StandardErrorPath</key>
-    <string>/Users/davidpedersen/Scripts/clawberbot/logs/launchd-stderr.log</string>
+    <string>/Users/davidpedersen/Mini/clawberbot/logs/launchd-stderr.log</string>
     <key>EnvironmentVariables</key>
     <dict>
         <key>PATH</key>
