@@ -36,7 +36,7 @@ The submit script reads a `.js` file and sends its contents as a string. That JS
 - **API Key:** in `.env` (`CLAWBER_API_KEY`)
 - **Claim URL:** https://clawber.ai/claim/blitz-SKDG (Twitter verification pending)
 - **Referral code:** `BCT7BX` (+25 ELO for both parties)
-- **Current bot:** `bots/v51-baked-nav.js` (**server v103**, submitted 2026-06-01) — v44 + precomputed sunken_reef reef-avoiding flow field (terrain-entrapment fix; ~36% of losses had a bot oscillating against a reef into a zone death). Gated: only overrides center-ward retreat when a reef is in the path; tick-0 drift check falls back to v44. **GATED TEST RUNNING** — abort if <6W in first 10; measure entrapment-death-rate drop via `src/clawber/terrain_overlay.mjs` on v51 replays (started_at > submit). **Fallback: v44 `bots/v44-safe-pickup-v41base.js` (server v102)** — resubmit to revert.
+- **Current bot:** `bots/v53-pickup-gravity.js` (**server v105**, LOCKED 2026-06-01) — v44 + **(a)** precomputed sunken_reef reef-avoiding flow field (terrain-entrapment fix; ~36% of losses were a bot oscillating against a reef into a zone death) + **(b)** pickup GRAVITY: needed/blast-safe/in-zone pickups exert an inverse-square, need-scaled, capped(0.6) pull on travel (wounded bots arc toward health; full HP/ammo ignore). Both gated/capped → byte-identical to v44 except near reefs / needed pickups (validated surgical). Tick-0 drift check → v44 fallback. Daily gate-check tracks W/L + entrapment + pickup-collection (`scripts/v51-gate-check.sh`). **Fallbacks (resubmit to revert): v52 binary-pickup sv104, v51 terrain-only sv103, v44 sv102.**
 
 ### Bot Version History
 | Internal | Server | File | Key Changes | Record |
@@ -87,7 +87,12 @@ The submit script reads a `.js` file and sends its contents as a string. That JS
 | v40 | sv93 | v40-surround-opener.js | Opening surround-enemy ring (NEUTRAL on CC) | 16W-14L vs CC (53%), 62W-0L non-CC |
 | v41 | sv94 | v41-cluster-aim-3way.js | 3-way centroid multi-hit search (extends v36 clusterAim 2→3 enemies) | 10-7 vs CC (59%, N=17 firmed) — within noise of the ~35% pooled ceiling; the 83% n=12 was variance; 29-1 non-CC |
 | v42 | sv95 | v42-endgame-pickup.js | v41 + 1v1 endgame pickup branch above terrain-escape (FAILED — branch misfired; CC bleed was regression-to-mean not the branch) | 2W-10L vs CC, 34-0 non-CC |
-| **v44** | **sv96** | **v44-safe-pickup-v41base.js** | **v41 base + v43 safer general-pickup gates, v42 1v1 branch REMOVED. Clean non-regressive hold-base.** | **30-match gate 29W-1L (97%), non-CC 28-0, lone loss CC** |
+| v44 | sv96/102 | v44-safe-pickup-v41base.js | v41 base + v43 safer general-pickup gates, v42 1v1 branch REMOVED. Clean non-regressive hold-base. | 30-match gate 29W-1L (97%); the analytics-pipeline-era hold-base |
+| v49 | — | v49-cc-delay-firstblood.js | CC-gated delay-first-blood. OFFLINE-FALSIFIED (first-death tick identical W/L) — not shipped | retained |
+| v50 | — | v50-engage-retreat.js | bad-trade engage/retreat gate. OFFLINE-INERT (v44 already maneuvers) — not shipped | retained |
+| v51 | sv103 | v51-baked-nav.js | v44 + precomputed sunken_reef reef-avoiding flow field (terrain-entrapment fix, ~36% of losses) | mechanism-validated; fallback |
+| v52 | sv104 | v52-baked-nav-pickup.js | v51 + binary opportunistic pickup (grab within 130u) | fallback |
+| **v53** | **sv105** | **v53-pickup-gravity.js** | **v51 + pickup GRAVITY (inverse-square, need-scaled, capped). LOCKED current bot.** | **validated surgical (0.04% diff, 100% at pickups); live** |
 
 ### Current Record (as of 2026-05-30)
 - **ELO:** **2169 (#2 leaderboard)**, −164 vs CC-0308 (#1 at 2333). #3 (hbfreed) is 134 below us — #2 hold is secure.
