@@ -19,6 +19,10 @@ function obstacleNear(x, y, rad) {
   return false;
 }
 
+// Optional: only score replays since a timestamp (e.g. SINCE=2026-06-01T15:53:03Z for v51-era).
+const SINCE = process.env.SINCE || null;
+if (SINCE) console.log(`SINCE filter: ${SINCE} (scoring only replays started after this)`);
+
 // ---- pass 1: CALIBRATION SANITY — bots never stand in reefs; obstacle-overlap must be low ----
 let posTot = 0, posInObs = 0, files = [];
 walkJson('match-history', files);
@@ -27,6 +31,7 @@ for (const f of files) {
   let d; try { d = JSON.parse(fs.readFileSync(f)); } catch { continue; }
   if (!d.frames || !d.bots || d.mapId !== 'sunken_reef') continue;
   const m = parseReplay(d); if (!m || m.won == null) continue;
+  if (SINCE && (!m.startedAt || String(m.startedAt) <= SINCE)) continue;  // v51-era only
   reps.push(m);
   for (const fr of m.frames) for (const b of fr.bots) {
     if (!b.us || !b.alive) continue;
