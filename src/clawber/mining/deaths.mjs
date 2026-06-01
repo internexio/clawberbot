@@ -16,7 +16,7 @@ const variance = (a) => {
 };
 const get = (fr, id) => fr.bots.find(b => b.id === id);
 
-function analyzeOne(id, w) {
+function analyzeOne(id, w, killerId, hasEvents) {
   if (!w.length) return null;
   let outside = 0, n = 0, ammoZero = false, dmgLate = 0;
   let loneTicks = 0, locE = 0, locA = 0;
@@ -39,16 +39,28 @@ function analyzeOne(id, w) {
   const loneFrac = n ? loneTicks / n : 0;
   const localEnemyAvg = n ? locE / n : 0, localAllyAvg = n ? locA / n : 0;
 
+  // events-based attribution (authoritative when present); fall back to proximity/health-delta.
+  let realAttackers = new Set(), zoneDmg = 0, enemyDmg = 0;
+  for (const fr of w) for (const e of (fr.events || [])) {
+    if (e.type === 'damage' && e.targetId === id) {
+      if (e.zone) zoneDmg += e.damage; else { enemyDmg += e.damage; realAttackers.add(e.attackerId); }
+    }
+  }
+  const atkCount = hasEvents ? realAttackers.size : attackers.size;
+  const tookDmgLate = hasEvents ? (enemyDmg + zoneDmg > 0) : (dmgLate > 0);
+
   let badTrade = false; const b0 = get(w[0], id);
   if (b0) {
     let nd = Infinity, ne = null;
     for (const e of w[0].bots) { if (e.us || !e.alive) continue; const d = dist(b0, e); if (d < nd) { nd = d; ne = e; } }
     if (ne && nd <= C.ABL_RANGE && b0.health < ne.health) badTrade = true;
   }
+  // zone via the EXACT killer when available; else dominant-damage / outside-fraction.
+  const zoneKill = killerId === 'zone' || (hasEvents && zoneDmg > 0 && zoneDmg > enemyDmg);
   let cause = 'unknown';
-  if (n && outside > n * 0.5) cause = 'zone';
-  else if (posVar < 50 && dmgLate > 0) cause = 'trapped';
-  else if (attackers.size >= 2) cause = 'focused';
+  if (zoneKill || (!hasEvents && n && outside > n * 0.5)) cause = 'zone';
+  else if (posVar < 50 && tookDmgLate) cause = 'trapped';
+  else if (atkCount >= 2) cause = 'focused';
   else if (ammoZero) cause = 'starved';
   else if (badTrade) cause = 'bad_trade';
 
@@ -75,7 +87,8 @@ export function classifyDeaths(m) {
       const p = prevById[b.id]; if (!p) continue;
       if (b.us && p.alive && !b.alive) {
         const w = F.slice(Math.max(0, i - 30), i);
-        const r = analyzeOne(b.id, w); if (!r) continue;
+        const killEv = (fr.events || []).find(e => e.type === 'kill' && e.victimId === b.id);
+        const r = analyzeOne(b.id, w, killEv ? killEv.killerId : null, m.hasEvents); if (!r) continue;
         causes.push({ tick: fr.tick, ...r });
         if (r.cause in features) features[r.cause] = true;
         if (r.lone) features.death_lone = true;

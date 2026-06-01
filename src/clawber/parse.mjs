@@ -34,6 +34,12 @@ export function parseReplay(raw) {
   const won = winnerBotId != null ? ourIds.has(winnerBotId)
     : (w && w.agentId ? w.agentId === OUR_AGENT : null);
 
+  // ---- match-level event log (authoritative; supersedes health-delta inference) ----
+  // Replay frames carry events[]: kill{killerId,victimId}, damage{attackerId,targetId,damage},
+  // ability{botId,targetPosition}, powerup_collect{botId,powerupId}, zone_shrink.
+  const EV = { kills: [], damage: [], abilities: [], collects: [] };
+  const usOf = id => ourIds.has(id);
+
   const F = [];
   for (const fr of frames) {
     const z = fr.zone || {};
@@ -56,16 +62,38 @@ export function parseReplay(raw) {
       x: num(p.position && p.position.x, num(p.x)), y: num(p.position && p.position.y, num(p.y)),
       expiresAtTick: num(p.expiresAtTick, Infinity),
     }));
-    F.push({ tick: num(fr.tick, F.length), bots: fb, zone: { cx: zcx, cy: zcy, r: zr }, powerups: pu });
+    const t = num(fr.tick, F.length);
+    const fev = [];
+    for (const e of (fr.events || [])) {
+      if (e.type === 'kill') {
+        const ev = { tick: t, killerId: e.killerId, victimId: e.victimId,
+          killerUs: usOf(e.killerId), victimUs: usOf(e.victimId) };
+        EV.kills.push(ev); fev.push({ type: 'kill', ...ev });
+      } else if (e.type === 'damage') {
+        const ev = { tick: t, attackerId: e.attackerId, targetId: e.targetId, damage: num(e.damage),
+          attackerUs: usOf(e.attackerId), targetUs: usOf(e.targetId), zone: e.attackerId === 'zone' };
+        EV.damage.push(ev); fev.push({ type: 'damage', ...ev });
+      } else if (e.type === 'ability') {
+        const ev = { tick: t, botId: e.botId, us: usOf(e.botId),
+          tx: num(e.targetPosition && e.targetPosition.x), ty: num(e.targetPosition && e.targetPosition.y) };
+        EV.abilities.push(ev); fev.push({ type: 'ability', ...ev });
+      } else if (e.type === 'powerup_collect') {
+        const who = e.botId || e.collectorId || e.collectedBy;
+        const ev = { tick: t, botId: who, us: usOf(who), powerupId: e.powerupId || e.id, ptype: e.powerupType };
+        EV.collects.push(ev); fev.push({ type: 'collect', ...ev });
+      }
+    }
+    F.push({ tick: t, bots: fb, zone: { cx: zcx, cy: zcy, r: zr }, powerups: pu, events: fev });
   }
   F.sort((a, b) => a.tick - b.tick);
+  const hasEvents = EV.kills.length + EV.damage.length + EV.abilities.length > 0;
 
   return {
     matchId: raw.matchId || null, mapId: raw.mapId || null,
     startedAt: raw.startedAt || null,
     durationTicks: F.length ? F[F.length - 1].tick : 0,
     won, vsCC, winnerBotId, opponentAgentId, opponentName, agentOf, ourIds,
-    frames: F,
+    frames: F, events: EV, hasEvents,
   };
 }
 
