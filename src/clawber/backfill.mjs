@@ -17,9 +17,12 @@ fs.mkdirSync(OUT, { recursive: true });
 const reg = buildRegistry(ROOT);
 const mW = jsonlWriter(`${OUT}/matches.jsonl`);
 const xW = jsonlWriter(`${OUT}/metrics.jsonl`);
-const tW = jsonlWriter(`${OUT}/ticks.jsonl`);
+// NB: no per-tick store. The raw replays in match-history/ ARE the tick-level cold
+// store (full fidelity); analyses recompute from them via parse.mjs. A derived
+// ticks.jsonl was redundant + write-only (45MB, nothing read it). If a real
+// tick-level SQL workload ever appears, generate parquet then — not JSONL here.
 
-let n = 0, cc = 0, ticks = 0, skipped = 0; const seen = new Set();
+let n = 0, cc = 0, skipped = 0; const seen = new Set();
 for (const f of walkJson(ROOT)) {
   const m = loadReplay(f);
   if (!m || m.won == null) { skipped++; continue; }
@@ -40,15 +43,8 @@ for (const f of walkJson(ROOT)) {
   xW.write({ match_id: m.matchId, won: m.won, vs_cc: m.vsCC, started_at: m.startedAt,
     opponent_agent_id: oppId, opponent_name: oppName, bot_version: meta.bot_version ?? null,
     ...cm, ...sm, ...mm, ...om });
-
-  // ticks store: vs_cc matches only (the analysis target) — DELIBERATE CAP, logged below.
-  if (m.vsCC) for (const fr of m.frames) for (const b of fr.bots) {
-    if (!b.us) continue;
-    tW.write({ match_id: m.matchId, tick: fr.tick, bot_id: b.id, x: Math.round(b.x), y: Math.round(b.y), health: b.health, ammo: b.ammo, alive: b.alive });
-    ticks++;
-  }
 }
-mW.close(); xW.close(); tW.close();
+mW.close(); xW.close();
 console.log(`backfill complete: ${n} matches (${cc} vs_cc), ${skipped} unparseable/skipped.`);
-console.log(`  → data/matches.jsonl (${mW.count}), data/metrics.jsonl (${xW.count}), data/ticks.jsonl (${tW.count})`);
-console.log(`  CAP: ticks.jsonl written for vs_cc matches ONLY (non-CC ticks omitted; metrics.jsonl covers all). Raw replays remain the cold store for recompute.`);
+console.log(`  → data/matches.jsonl (${mW.count}), data/metrics.jsonl (${xW.count})`);
+console.log(`  (tick-level data lives in the raw replays under match-history/ — recompute on demand.)`);
