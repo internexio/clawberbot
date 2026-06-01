@@ -3,3 +3,8 @@ match-history/*.json
 match-history/pending.txt
 .DS_Store
 logs/
+
+# Beads / Dolt files (added by bd init)
+.dolt/
+*.db
+.beads-credential-key
