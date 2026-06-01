@@ -1,6 +1,5 @@
 .env
-match-history/*.json
-match-history/pending.txt
+match-history/
 .DS_Store
 logs/
 
