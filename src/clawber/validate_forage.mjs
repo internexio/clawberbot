@@ -21,35 +21,38 @@ for (const fn of files) {
   const dur = m.duration || m.frames[m.frames.length - 1].tick;
   if (won && dur <= 400) continue;          // failure/long corpus (where foraging matters)
   scanned++;
-  const u54 = load('bots/v54-cf1-gate.js'), u55 = load('bots/v55-forage.js');
+  const u54 = load('bots/v54-cf1-gate.js'), u55 = load('bots/v56-directional-forage.js');
   for (const fr of m.frames) {
     const en = fr.bots.filter(b => b.alive && !ours.includes(b.id));
     for (const id of ours) {
       const self = fr.bots.find(b => b.id === id); if (!self || !self.alive) continue;
       const allies = fr.bots.filter(b => b.alive && ours.includes(b.id) && b.id !== id);
-      // best useful pickup within forage range
-      let best = null, bd = 1e9;
-      for (const p of (fr.powerups || [])) {
-        const useful = (p.type === 'health' && self.health < 85) || (p.type === 'ammo' && (self.ammo ?? 5) < 4);
-        if (!useful) continue; const d = dd(p.position, self.position);
-        if (d < bd && d > 20 && d < 400) { bd = d; best = p; }
-      }
+      const en2 = fr.bots.filter(b => b.alive && !ours.includes(b.id));
+      const usefulPs = (fr.powerups || []).filter(p => { const d = dd(p.position, self.position);
+        return d > 20 && d < 450 && ((p.type === 'health' && self.health < 85) || (p.type === 'ammo' && (self.ammo ?? 5) < 4)); });
+      if (!usefulPs.length) continue;
       const input = { selfId: id, teamBotIds: ours, botNumber: +(String(id).split(':')[1] || 0),
         tick: fr.tick, bots: fr.bots, zone: fr.zone, powerups: fr.powerups || [] };
       let a54, a55; try { a54 = u54(input); a55 = u55(input); } catch (e) { throws++; continue; }
-      if (!best) continue;
       usefulTicks++;
-      const ux = (best.position.x - self.position.x) / bd, uy = (best.position.y - self.position.y) / bd;
-      const proj = a => (a && a.type === 'move' && a.direction)
-        ? (a.direction.x * ux + a.direction.y * uy) / (Math.hypot(a.direction.x, a.direction.y) || 1) : -1;
-      const p54 = proj(a54), p55 = proj(a55);
-      projV54 += Math.max(-1, p54); projV55 += Math.max(-1, p55);
-      const f54 = p54 > 0.6, f55 = p55 > 0.6;
+      // forage = a MOVE aligned (>0.6) with SOME useful pickup; pick the best-aligned one.
+      const bestProj = a => { if (!(a && a.type === 'move' && a.direction)) return { proj: -1, p: null };
+        const m = Math.hypot(a.direction.x, a.direction.y) || 1; let bp = -1, bpk = null;
+        for (const p of usefulPs) { const d = dd(p.position, self.position) || 1;
+          const pr = (a.direction.x * (p.position.x - self.position.x) / d + a.direction.y * (p.position.y - self.position.y) / d) / m;
+          if (pr > bp) { bp = pr; bpk = p; } } return { proj: bp, p: bpk }; };
+      const r54 = bestProj(a54), r55 = bestProj(a55);
+      projV54 += Math.max(-1, r54.proj); projV55 += Math.max(-1, r55.proj);
+      const f54 = r54.proj > 0.6, f55 = r55.proj > 0.6;
       if (f55 && !f54) forageEngaged++; else if (f54 && !f55) v54Forage++; else if (!f54 && !f55) bothHuddle++;
-      // SAFETY: would moving toward this pickup head into isolation? (nearest ally dist at the pickup)
-      const allyAtPickup = allies.length ? Math.min(...allies.map(a => dd(a.position, best.position))) : Infinity;
-      if (f55 && allyAtPickup > 300) exposureV55++;
-      if (f54 && allyAtPickup > 300) exposureV54++;
+      // SAFETY: of v55's forage moves, is it AWAY from the enemy (safe) and not into isolation?
+      if (f55 && r55.p) {
+        let nd = 1e9, ne = null; for (const e of en2) { const d = dd(e.position, self.position); if (d < nd) { nd = d; ne = e; } }
+        const ux = (r55.p.position.x - self.position.x) / (dd(r55.p.position, self.position) || 1), uy = (r55.p.position.y - self.position.y) / (dd(r55.p.position, self.position) || 1);
+        const ndAfter = ne ? Math.hypot(self.position.x + ux * 12 - ne.position.x, self.position.y + uy * 12 - ne.position.y) : 1e9;
+        const allyAtPickup = allies.length ? Math.min(...allies.map(a => dd(a.position, r55.p.position))) : Infinity;
+        if (ndAfter <= nd && allyAtPickup > 300) exposureV55++;   // toward-enemy AND isolating = the bad case
+      }
     }
   }
 }
