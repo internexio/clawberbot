@@ -36,7 +36,8 @@ The submit script reads a `.js` file and sends its contents as a string. That JS
 - **API Key:** in `.env` (`CLAWBER_API_KEY`)
 - **Claim URL:** https://clawber.ai/claim/blitz-SKDG (Twitter verification pending)
 - **Referral code:** `BCT7BX` (+25 ELO for both parties)
-- **Current bot:** `bots/v53-pickup-gravity.js` (**server v105**, LOCKED 2026-06-01) — v44 + **(a)** precomputed sunken_reef reef-avoiding flow field (terrain-entrapment fix; ~36% of losses were a bot oscillating against a reef into a zone death) + **(b)** pickup GRAVITY: needed/blast-safe/in-zone pickups exert an inverse-square, need-scaled, capped(0.6) pull on travel (wounded bots arc toward health; full HP/ammo ignore). Both gated/capped → byte-identical to v44 except near reefs / needed pickups (validated surgical). Tick-0 drift check → v44 fallback. Daily gate-check tracks W/L + entrapment + pickup-collection (`scripts/v51-gate-check.sh`). **Fallbacks (resubmit to revert): v52 binary-pickup sv104, v51 terrain-only sv103, v44 sv102.**
+- **Current bot:** `bots/v54-cf1-gate.js` (**server v106**, live 2026-06-01) — v53 + **ONE change (CF-1 fix)**: gate the single-target ability FALLBACK (the `clusterAim(nearestEnemy)` cast the combat block uses only when its `enemyPairs` multi-hit search finds nothing) on `abWorth(lead) = nearestDist>ATK_RANGE || enemiesInBlast(lead)>=2`. v53 fired that single-target ability even with the nearest enemy inside melee range (melee 15dmg > ability 10dmg/30cd, and it burns the ability) — measured **22% of all casts (1203/5501)** via the new events[]-based `src/clawber/event_harness.mjs`. Suppressed casts fall through to the combat-tail melee. Provably non-regressive (only swaps ability→melee when an enemy is already in melee range; multi-hit & ranged casts unchanged). Counterfactual on 60 real games: 0 throws, 65% of single-hit-at-melee casts flip to melee/reposition. 10-match gate running. **Fallbacks (resubmit to revert): v53 sv105 (the locked base), v51 sv103, v44 sv102.**
+  - *v53 (sv105, now fallback):* v44 + (a) baked sunken_reef reef-avoiding flow field (terrain-entrapment fix, ~36% of losses) + (b) pickup GRAVITY (inverse-square, need-scaled, capped 0.6). Validated surgical. The CF-1 fix did NOT touch terrain/pickup; v54 carries both forward. Daily gate-check `scripts/v51-gate-check.sh`.
 
 ### Bot Version History
 | Internal | Server | File | Key Changes | Record |
@@ -92,7 +93,8 @@ The submit script reads a `.js` file and sends its contents as a string. That JS
 | v50 | — | v50-engage-retreat.js | bad-trade engage/retreat gate. OFFLINE-INERT (v44 already maneuvers) — not shipped | retained |
 | v51 | sv103 | v51-baked-nav.js | v44 + precomputed sunken_reef reef-avoiding flow field (terrain-entrapment fix, ~36% of losses) | mechanism-validated; fallback |
 | v52 | sv104 | v52-baked-nav-pickup.js | v51 + binary opportunistic pickup (grab within 130u) | fallback |
-| **v53** | **sv105** | **v53-pickup-gravity.js** | **v51 + pickup GRAVITY (inverse-square, need-scaled, capped). LOCKED current bot.** | **validated surgical (0.04% diff, 100% at pickups); live** |
+| v53 | sv105 | v53-pickup-gravity.js | v51 + pickup GRAVITY (inverse-square, need-scaled, capped). | validated surgical (0.04% diff, 100% at pickups); fallback |
+| **v54** | **sv106** | **v54-cf1-gate.js** | **v53 + CF-1 fix: gate single-target ability FALLBACK on `abWorth` (skip single-hit cast at melee range → melee). Measured 22% of casts wasted (events[] harness). 1 gated line + 2 helpers.** | **counterfactual 60 games/0 throws; provably non-regressive; 10-match gate live** |
 
 ### Current Record (as of 2026-05-30)
 - **ELO:** **2169 (#2 leaderboard)**, −164 vs CC-0308 (#1 at 2333). #3 (hbfreed) is 134 below us — #2 hold is secure.
