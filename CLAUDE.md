@@ -36,7 +36,7 @@ The submit script reads a `.js` file and sends its contents as a string. That JS
 - **API Key:** in `.env` (`CLAWBER_API_KEY`)
 - **Claim URL:** https://clawber.ai/claim/blitz-SKDG (Twitter verification pending)
 - **Referral code:** `BCT7BX` (+25 ELO for both parties)
-- **Current bot:** `bots/v44-safe-pickup-v41base.js` (server v96) — #2 as of 2026-05-30; v41 base + v43 pickup gates, v42 1v1 branch removed. 30-match gate 29W-1L (97%).
+- **Current bot:** `bots/v51-baked-nav.js` (**server v103**, submitted 2026-06-01) — v44 + precomputed sunken_reef reef-avoiding flow field (terrain-entrapment fix; ~36% of losses had a bot oscillating against a reef into a zone death). Gated: only overrides center-ward retreat when a reef is in the path; tick-0 drift check falls back to v44. **GATED TEST RUNNING** — abort if <6W in first 10; measure entrapment-death-rate drop via `src/clawber/terrain_overlay.mjs` on v51 replays (started_at > submit). **Fallback: v44 `bots/v44-safe-pickup-v41base.js` (server v102)** — resubmit to revert.
 
 ### Bot Version History
 | Internal | Server | File | Key Changes | Record |
