@@ -11,8 +11,10 @@ The zone always collapses toward the arena center (~1024,1024). So for every pas
 - Compute: terrain-weighted **Dijkstra** from the central safe region outward over the 64×64 passable grid → per-cell distance → per-cell flow direction (gradient descent on distance).
 - Encode: 64×64 cells × 8-direction (3 bits) ≈ 1.5 KB; plus a 64×64 passability bitmap (512 B) for the drift hash. A few KB total — far under the 50 KB bot limit.
 
-## PREREQUISITE — capture the EXACT grid (not the vision grid)
-The baked field must use the **real** game terrain, or the bot routes into wrong/phantom obstacles. The vision-extracted grid (`scouting/sunken_reef-grid.json`) is good enough for *our analysis* (0.3% bot overlap) but **NOT** for baking a bot that paths on it. Capture the exact grid via a **one-time `say`-dump**: a throwaway bot version emits `input.tiles` (the exact 64×64 passability) across the early `say` messages; decode from that match's replay chat → exact grid. *[reckoning]*
+## Grid source — OCCUPANCY negative-space (preferred; likely removes the say-dump need)
+Use `scouting/sunken_reef-occupancy.json` — obstacle map derived deterministically from 4.4M real bot positions (any never-visited cell = obstacle; `src/clawber/build_occupancy_grid.mjs`). Exact world coords (no calibration), cross-validated against the vision grid (383 reef cells agree). Built from where bots actually CAN go → a faithful passability map for baking nav, and **free** (no bot change). *[reckoning]*
+- Gap vs the game's true `input.tiles`: occupancy is binary passability, not the slow/very_slow movement-cost tiers. Fine for obstacle avoidance; if cost-aware routing proves worth it, a one-time `say`-dump adds exact costs. *[predictive — defer]*
+- Periphery cells (round-arena corners) are out-of-bounds (existing zone logic handles them); bake nav over interior reef obstacles only.
 
 ## Bot integration (gated; combat untouched)
 Use the flow field **only for center-ward / escape movement** — the existing `safeMove({x: zx-self.x, y: zy-self.y})` calls (zone retreat, terrain escape, regroup-toward-center). Replace "head straight at center" (which walks into reefs) with "follow the flow-field step toward center" (routes around them). **Do NOT** use it for combat chase/orbit (dynamic, not center-ward) — that stays v44. Triple-gate: (1) bot needs to move center-ward, (2) a reef lies between bot and center (flow dir ≠ straight-line dir), (3) on `sunken_reef` with drift-check passed. *[evaluative]*
@@ -23,7 +25,7 @@ At tick 0, hash live `input.tiles.passable` and compare to the baked passability
 - **Mismatch (drift)** → fall back to v45/v46-style runtime BFS, AND emit `say:"MAPDRIFT"` (lands in replay chat → we detect offline and re-bake). Self-healing + monitored. Also re-screenshot the arena periodically and diff as a second drift signal.
 
 ## Build & validation pipeline
-1. Capture exact grid (say-dump) → `maps/sunken_reef.tiles.json`.
+1. Use the occupancy grid `scouting/sunken_reef-occupancy.json` (already built; no say-dump needed).
 2. Offline: Dijkstra → flow field → encode → bake constant into `bots/v51-baked-nav.js`.
 3. **Faithful validation** (now possible with the exact grid — the vision-grid sim was inconclusive): re-run the escape micro-sim (`/tmp/escape_sim.mjs`) on the **137 entrapment positions** using the real grid; require the baked-nav bot to escape toward center where v44 oscillates. *[gate — do not ship if it doesn't unstick them]*
 4. Diff-harness: confirm non-`sunken_reef` / drift path is byte-identical to v44 fallback.

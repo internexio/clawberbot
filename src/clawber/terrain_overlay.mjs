@@ -5,7 +5,11 @@
 import fs from 'fs';
 import { parseReplay, walkJson, dist } from './parse.mjs';
 
-const G = JSON.parse(fs.readFileSync('scouting/sunken_reef-grid.json'));
+// Prefer the deterministic occupancy grid (bot negative-space) over the vision grid.
+const GRID_PATH = fs.existsSync('scouting/sunken_reef-occupancy.json')
+  ? 'scouting/sunken_reef-occupancy.json' : 'scouting/sunken_reef-grid.json';
+const G = JSON.parse(fs.readFileSync(GRID_PATH));
+console.log(`grid source: ${GRID_PATH} (${G.source || 'vision'})`);
 const N = G.grid, CW = G.cellWorld, obstacle = G.obstacle;
 const cellOf = (x, y) => [Math.min(N - 1, Math.max(0, Math.floor(y / CW))), Math.min(N - 1, Math.max(0, Math.floor(x / CW)))];
 const isObs = (r, c) => r >= 0 && r < N && c >= 0 && c < N && obstacle[r][c] === 1;

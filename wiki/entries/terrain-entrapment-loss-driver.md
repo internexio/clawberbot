@@ -20,7 +20,11 @@ The canonical case: ClaudeOpus loss `97f91920` — a lone 80-HP bot pinned on th
 ## What targets it
 v45 (pocket-escape: BFS out of concave pockets) and v46 (BFS-pickup routing) were built for exactly this — each passed a live 10W-0L gate, then were reverted on an *unconfirmed* CC regression (the v37 small-N revert trap). A precomputed baked-nav-field for the static map is the stronger long-term fix (see `strategies/baked-nav-field-spec.md`).
 
-## Firmed (2026-06-01)
+## Authoritative grid: OCCUPANCY negative-space (2026-06-01, supersedes vision)
+The obstacle map is now derived **deterministically from bot motion**, not vision: across 726 matches, 4.4M alive-bot positions (both teams) are binned into a 64×64 grid; any cell **no bot ever occupies = obstacle** (bots can't enter reefs). `src/clawber/build_occupancy_grid.mjs` → `scouting/sunken_reef-occupancy.json`. No pixels, no color thresholds, no px→world calibration (bot positions ARE world coords). Cross-validated against the independent vision grid: **383 cells agree as obstacle (the real reefs)**; occupancy drops the vision grid's 77 UI false-positives. The thick periphery band = the round arena (zone keeps bots out of the square's corners), distinct from interior reefs.
+Entrapment on the occupancy grid: **258 deaths (13%), 153 high-confidence stuck→zone, 201/552 = 36% of losses** — firms the prize UP on the most rigorous map. Three grids (vision-50 35%, vision-64 34%, occupancy 36%) converge.
+
+## Firmed (2026-06-01, vision grid — superseded by occupancy above)
 Re-segmented at 64×64 (matching the real grid) with UI filters (green health bars, red zone ring, top banner removed). Result barely moved — **234 entrapment deaths (12%), 137 high-confidence (stuck→zone), 187/552 = 34% of losses** — while calibration overlap dropped **3.2% → 0.3%** (bots now essentially never land in obstacle cells). The prize is NOT a grid artifact; it's robust. High-confidence floor = 137 unambiguous stuck-into-zone self-kills.
 
 ## Caveats
