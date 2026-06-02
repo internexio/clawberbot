@@ -1,0 +1,7 @@
+{
+  "name": "clawberbot-tools",
+  "private": true,
+  "description": "Internal analysis + bot build tooling (NOT submitted to Clawber).",
+  "devDependencies": { "terser": "^5.48.0" },
+  "scripts": { "build-bot": "node scripts/build-bot.mjs" }
+}
