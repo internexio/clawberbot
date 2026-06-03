@@ -47,10 +47,11 @@ if [[ ! -f "$LEADERBOARD_FILE" ]]; then
   echo "timestamp,our_rank,our_elo,our_wins,our_losses,top_elo,top_name" > "$LEADERBOARD_FILE"
 fi
 
-# --- Heartbeat (every run — API wants it every 4h, we run hourly) ---
-log "HEARTBEAT: sending..."
-HB=$(curl -s -X POST "$API_BASE/heartbeat" -H "$AUTH" 2>&1)
-log "HEARTBEAT: $HB"
+# --- Heartbeat ---
+# Moved OUT of this hourly monitor (2026-06-03): the docs recommend a heartbeat
+# every 4h and beating hourly was overkill. The dedicated job
+# com.semalytics.clawber-heartbeat now runs scripts/heartbeat.sh every 14400s (4h).
+# This monitor stays hourly for leaderboard snapshots + config checks only.
 
 # --- Configuration ---
 # LADDER-ONLY MODE (2026-06-03): self-queuing disabled to slow how many matches

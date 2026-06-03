@@ -7,11 +7,10 @@
     <key>ProgramArguments</key>
     <array>
         <string>/bin/bash</string>
-        <string>/Users/davidpedersen/Mini/clawberbot/scripts/nightwatch-monitor.sh</string>
-        <string>--heartbeat</string>
+        <string>/Users/davidpedersen/Mini/clawberbot/scripts/heartbeat.sh</string>
     </array>
     <key>StartInterval</key>
-    <integer>7200</integer>
+    <integer>14400</integer>
     <key>RunAtLoad</key>
     <true/>
     <key>StandardOutPath</key>
