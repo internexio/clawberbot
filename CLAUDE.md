@@ -160,6 +160,11 @@ clawberbot/
    - Execution problems → modify movement vectors, terrain handling.
    - **NEVER add zone-center pull to movement vectors** (proven dead end: v27b 75%, v27c 84%,
      v31 50%). Change DECISIONS, not FORCES. (v32 fixed zone play via target selection — succeeded.)
+     (Distinct from a per-bot, edge-*gated* inward nudge that only fires when a bot nears the
+     shrinking edge — v66 — which is not a persistent center force on the chase vector. PENDING.)
+   - **Target-seeking moves must be REEF-AWARE.** Raw `dirTo`+`safeMove` only deflects locally and
+     cannot route around a reef band; the bot then oscillates against it forever. Use grid
+     pathfinding (`pathDir` BFS on `_s.navGrid`) for forage/converge targets. See lesson #14.
 2. **KF pipeline for non-trivial changes:** `strategist → critic (pre-code) → builder → critic (final)`.
    The pre-code critic pass is the valuable one — cheaper to reject an approach than revert a deploy.
 3. **Triple-gate any behavioral change** so it does NOTHING when not applicable:
@@ -214,7 +219,10 @@ These are load-bearing and proven across 5700+ matches. New iterations should re
    (Note: the old "hold 2 reserve" gate was tuned for 3 starting ammo; actual is 5 — that gate over-conserves.)
 4. **Pickups are low-leverage with 5 ammo** but health pickups (35 HP) still matter; CC wins
    collecting 0-1. Pickup-collection rate has been hard to move via gates (v52/53/57); v59 finally
-   moved it by removing a score-sign distance veto, not by changing gates.
+   moved it by removing a score-sign distance veto, not by changing gates. (v65/66: another cause
+   of missed pickups was REEF-BLIND NAV — bots oscillating against a reef band en route, never
+   arriving — not just score/gates. EXCEPTION to "low-leverage": a bot at 0 ammo is *defenseless*
+   (melee+ability both cost ammo), so a single ammo pickup is existential, not low-leverage.)
 
 **What does NOT work (proven dead ends — don't re-litigate without new evidence)**
 5. **Movement-vector zone fixes** — v27b (75%), v27c (84%), v31 (50%) all degraded WR. Any
@@ -222,7 +230,9 @@ These are load-bearing and proven across 5700+ matches. New iterations should re
 6. **Redirecting ability fire away from nearestEnemy** — v38 (coordinated), v39 (reactive
    weakness) both cost opening DPS. nearestEnemy is the most damage-efficient aim target.
 7. **Widening formation** — v39b (HARD 200→250) lost more DPS than it saved from multi-hit
-   reduction. Formation tightness is load-bearing for our DPS.
+   reduction. Formation tightness is load-bearing for our DPS. (Distinct from late-game ANTI-BLAST
+   spacing: keeping *survivors* ≥160u apart — just outside the 150u AoE — to deny CC's multi-hit is
+   NOT "widening the opening formation." v66 tests this in the mirror only; efficacy PENDING.)
 8. **Restricting melee** — v35e (15% vs CC), v35d-D (77% ladder abort). Melee is load-bearing.
 9. **Over-iteration kills** — v16→v25, v28→v30, v27b→v27c all regressed. Use a proven base +
    surgical, triple-gated fixes. Never chase one opponent at the cost of general WR.
@@ -244,12 +254,42 @@ These are load-bearing and proven across 5700+ matches. New iterations should re
     We are a structural underdog to CC's wide 5-chaser formation; reclaiming #1 durably means a
     structural counter, not another parameter/branch tweak. See `docs/history.md` (Formation Paradox).
 
+**Navigation & spacing (diagnosed 2026-06-03 from 3 CC losses ab817b1d/09116e4c/386640a0; v65/v66 — these are PROVEN mechanism findings, but the WR fix is PENDING live)**
+14. **Reef-blind nav is a hidden execution-layer bug.** Mirror forage/converge moved via raw
+    `dirTo`+local `safeMove` (deflects ≤±1.2rad only) → dry bots oscillated against a reef band
+    200+ ticks, never reached ammo ~330u away → died at 0 ammo → clustered → AoE'd. Both "missing
+    obvious pickups" AND "huddle to death" traced to this ONE cause. Compounded by `terrainTrapped`
+    (oscillation→no net progress) routing the bot to a zone-escape that IGNORES pickups. Fix =
+    `pathDir` (BFS on `_s.navGrid`, `od>0`==passable) + a forage commit-latch (`_s.forageTarget`,
+    kills per-tick nearest-flip). The reef-aware flow field (`flowDirAt`) already existed but was
+    only wired into the `terrainTrapped` escape, never into forage/chase.
+15. **The zone NEVER forces a blast-range stack — so huddle-to-death is SELF-INFLICTED.** Shrink
+    min ~300 radius → 5 bots at ≥160u (outside the 150u AoE blast) always fit. In the 3 losses we
+    collapsed to <100u while `zr` was still 478–807 (tons of room), via a premature center-bias
+    (`zr<650`) + a spacing-collapse converge. Principle (v66): maintain zone-scaled spacing
+    `clamp(zr*0.5,160,400)` with a HARD repulsion floor at 160u that dominates the chase vector;
+    only tighten as the zone closes; finish from a standoff, never path ONTO the enemy point.
+16. **Terrain-dependent fixes are INVISIBLE offline** — replays carry no `tiles`, so `pathDir`/reef
+    logic is inert in counterfactual replay AND in `validate_min`. Validate them with a SYNTHETIC-
+    terrain sim that drives the full `update()` over a hand-built reef (`/tmp/reef_sim2.mjs`) plus a
+    multi-bot spacing sim (`/tmp/spread_sim.mjs`) — NOT replay counterfactuals. (Same class as the
+    v62 "forage efficacy is live-only" caveat. Still verify `min≡source` + non-aggro≡v60 separately.)
+
 ## Opponent Intelligence
 
-- **CrabCrusher-0308** (@craigrrob, #1): 5 independent chasers converging to zone center,
-  ability-only (zero melee), coordinated fire (2-3 bots same position same tick), no pickup
-  farming. Fires CLOSER than us (avg ~284u vs our ~342u) — close-range AoE brawler. Our main
-  ceiling. Full breakdown in `scouting/crabcrusher-0308/`.
+- **CrabCrusher-0308** (@craigrrob, #1): 5 independent WIDE chasers, ability-only (zero melee),
+  coordinated fire (2-3 bots same position same tick), no pickup farming. Fires CLOSER than us
+  (avg ~284u vs our ~342u) — close-range AoE brawler. Our main ceiling. Full breakdown in
+  `scouting/crabcrusher-0308/`.
+  - **CORRECTION (2026-06-01, N=50 losses + 32 wins): CC does NOT "converge faster."** Opening
+    speeds are EQUAL (us 11.0 vs CC 10.9 u/tick). The real geometry is wide-vs-tight (CC plays a
+    wide perimeter, we cluster central) — but this is **identical in our wins and losses** (CC-wider
+    gap +89 loss vs +77 win at t40, swamped by ±140 noise). **Opening positional geometry is a
+    NON-DISCRIMINATOR of CC outcome** — do NOT chase positional/convergence CC levers (centrality,
+    rush-timing, formation width all proven non-discriminating). CC games are decided by the
+    fine-grained AoE exchange on the one exposed bot (aim/variance), = the ~35% structural floor.
+    To get a balanced CC W/L sample (our wins aren't saved locally): `GET /api/v1/agent/{ccId}`
+    (ef7e1954…) → filter `isWin:false` → fetch each match → keep ones with our agentId.
 - **ClaudeOpus** — a second structural threat (~7% WR for us, high opponent aim). "100% non-CC"
   is not strictly true; opponent strength is bimodal.
 - **CFJBot fleet** — 6+ unclaimed LLM bots, turtle-at-center (~170u), dump ammo early then passive. We beat them consistently.
