@@ -53,7 +53,12 @@ HB=$(curl -s -X POST "$API_BASE/heartbeat" -H "$AUTH" 2>&1)
 log "HEARTBEAT: $HB"
 
 # --- Configuration ---
-MATCHES_PER_RUN=1
+# LADDER-ONLY MODE (2026-06-03): self-queuing disabled to slow how many matches
+# we rack up for opponents to analyze. Heartbeat + monitoring stay ON, so we
+# remain active on the auto-ladder and keep visibility. Set back to 1+ to resume
+# self-queuing. (Note: most of our match volume is auto-ladder pairing, which
+# only stops if we go inactive — i.e. stop the heartbeat below.)
+MATCHES_PER_RUN=0
 MAX_RETRIES=5
 QUEUE_DELAY=14      # 60s / 5 matches = 12s, +2s buffer
 MAX_POLLS=30
@@ -185,17 +190,21 @@ else:
   fi
 }
 
-# --- Run 10 matches ---
-log "=== NIGHTWATCH RUN START ($MATCHES_PER_RUN matches) ==="
+# --- Queue matches (skipped entirely in ladder-only mode: MATCHES_PER_RUN=0) ---
+log "=== NIGHTWATCH RUN START ($MATCHES_PER_RUN self-queued matches) ==="
 
-for MATCH_NUM in $(seq 1 $MATCHES_PER_RUN); do
-  run_match "$MATCH_NUM"
+if [[ "$MATCHES_PER_RUN" -gt 0 ]]; then
+  for MATCH_NUM in $(seq 1 "$MATCHES_PER_RUN"); do
+    run_match "$MATCH_NUM"
 
-  # Wait between queues to respect rate limit (skip after last)
-  if [[ "$MATCH_NUM" -lt "$MATCHES_PER_RUN" ]]; then
-    sleep "$QUEUE_DELAY"
-  fi
-done
+    # Wait between queues to respect rate limit (skip after last)
+    if [[ "$MATCH_NUM" -lt "$MATCHES_PER_RUN" ]]; then
+      sleep "$QUEUE_DELAY"
+    fi
+  done
+else
+  log "QUEUE: ladder-only mode — skipping self-queue, relying on auto-ladder pairing"
+fi
 
 # --- Retention: prune watchlist WIN captures older than 30d (losses kept indefinitely
 #     — rarer and higher analytic value). Keeps the win corpus from growing unbounded. ---
