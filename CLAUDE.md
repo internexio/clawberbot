@@ -250,11 +250,17 @@ These are load-bearing and proven across 5700+ matches. New iterations should re
     the "v41 83% vs CC" was n=12 variance. Don't attribute an ELO swing to a deploy without first
     confirming the changed code path was ACTIVE in the losses (the v42 and v37 false alarms both
     came from skipping this).
-13. **The CC matchup is a ~35% structural floor, not ~50%** (401-745, N=1146, Wilson [32-38%]).
-    We are a structural underdog to CC's wide 5-chaser formation; reclaiming #1 durably means a
-    structural counter, not another parameter/branch tweak. See `docs/history.md` (Formation Paradox).
+13. **The CC ~35% "structural floor" is BROKEN (as of 2026-06-04) — recent reality is 68–90%.**
+    It WAS a real floor pre-mirror (401-745, N=1146, Wilson [32-38%]) and the prescription held:
+    it took a STRUCTURAL COUNTER, not a parameter tweak. That counter was the **gated wide-mirror
+    archetype switch (v62+)** — mirror CC's own wide independent-chaser formation vs CC only — which
+    flipped the matchup (≤v116 = 68%, 40-19). The **v65–67 nav/spread/dry-bot fixes** layered on top
+    → **v67/sv118 = 90% vs CC (19-2)**, and we lead CC **#1 @2454 vs #2 @2132 = +322 ELO**. So: do
+    NOT treat CC as an unbeatable floor anymore; we are the favorite. (Caveat: v118 n=21<40 — high WR
+    is strong-but-provisional; the durable, verified shift is "mirror inverted the matchup," not the
+    exact 90%.) History/Formation-Paradox context: `docs/history.md`; verified via `/tmp/verify_lead.py`.
 
-**Navigation & spacing (diagnosed 2026-06-03 from 3 CC losses ab817b1d/09116e4c/386640a0; v65/v66 — these are PROVEN mechanism findings, but the WR fix is PENDING live)**
+**Navigation & spacing (diagnosed 2026-06-03 from 3 CC losses ab817b1d/09116e4c/386640a0; v65/66/67 — mechanism findings PROVEN, and WR now CONFIRMED live: v67/sv118 = 90% vs CC, see #13)**
 14. **Reef-blind nav is a hidden execution-layer bug.** Mirror forage/converge moved via raw
     `dirTo`+local `safeMove` (deflects ≤±1.2rad only) → dry bots oscillated against a reef band
     200+ ticks, never reached ammo ~330u away → died at 0 ammo → clustered → AoE'd. Both "missing
