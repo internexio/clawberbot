@@ -3,7 +3,8 @@
 ## Mission
 
 Manage a competitive AI bot on Clawber.ai: iterate on strategy from match results, submit
-new bot versions, and hold/climb the leaderboard. We sit at/near #2 behind CrabCrusher-0308.
+new bot versions, and hold/climb the leaderboard. We are **#1**, ahead of CrabCrusher-0308 at #2
+(as of 2026-06-11; ~78% vs CC at large N). Live ELO/position in `MEMORY.md`.
 
 > **Live state lives in `MEMORY.md`, not here.** Current bot version, server version,
 > fallback chain, ELO, leaderboard position, and the active priority change every session —
@@ -250,15 +251,27 @@ These are load-bearing and proven across 5700+ matches. New iterations should re
     the "v41 83% vs CC" was n=12 variance. Don't attribute an ELO swing to a deploy without first
     confirming the changed code path was ACTIVE in the losses (the v42 and v37 false alarms both
     came from skipping this).
-13. **The CC ~35% "structural floor" is BROKEN (as of 2026-06-04) — recent reality is 68–90%.**
+13. **The CC ~35% "structural floor" is BROKEN — true large-N rate is ~78% (we are the favorite).**
     It WAS a real floor pre-mirror (401-745, N=1146, Wilson [32-38%]) and the prescription held:
     it took a STRUCTURAL COUNTER, not a parameter tweak. That counter was the **gated wide-mirror
     archetype switch (v62+)** — mirror CC's own wide independent-chaser formation vs CC only — which
-    flipped the matchup (≤v116 = 68%, 40-19). The **v65–67 nav/spread/dry-bot fixes** layered on top
-    → **v67/sv118 = 90% vs CC (19-2)**, and we lead CC **#1 @2454 vs #2 @2132 = +322 ELO**. So: do
-    NOT treat CC as an unbeatable floor anymore; we are the favorite. (Caveat: v118 n=21<40 — high WR
-    is strong-but-provisional; the durable, verified shift is "mirror inverted the matchup," not the
-    exact 90%.) History/Formation-Paradox context: `docs/history.md`; verified via `/tmp/verify_lead.py`.
+    flipped the matchup (≤v116 = 68%, 40-19). The **v65–67 nav/spread/dry-bot fixes** layered on top.
+    **SETTLED RATE (2026-06-11, n=181): v67/sv118 = 142W-39L = 78% vs CC** — the earlier "90% (19-2)"
+    was n=21 variance; 78% is the honest number. We still lead the board **#1 vs CC #2**. So: do NOT
+    treat CC as an unbeatable floor anymore (we are the favorite), but do NOT quote 90% either.
+    **The ladder now pairs us ~97% vs CC** (we're #1, CC #2), so overall WR ≈ CC WR. History/
+    Formation-Paradox context: `docs/history.md`; verified via `/tmp/verify_lead.py`, `/tmp/cc_week.py`.
+13b. **Loss mechanism has SHIFTED — the v66/v67 fixes are CONFIRMED working at scale (2026-06-11
+    kf-debugger, 16 losses vs 16 wins, /tmp/extract.py).** All 42 weekly losses are CC; every loss is
+    a TOTAL TEAM WIPE (0 survivors, CC keeps 1-3 bots) in a LONG attrition game (avg 388t vs 245t in
+    wins). NON-discriminating (FIXED / proven dead — do not re-open): huddle (sep 429u loss vs 328u
+    win — losses are MORE spread), dry-center-spiral (dry dist-from-center 354u vs 434u — bots are
+    out near the ring, not the old 71-129u spiral), first-blood (5/16 vs 6/16). CONFOUNDED — do NOT
+    re-assert: low ammo@t160 (1.5 vs 3.4) is DURATION-confounded, long wins show it too. The one
+    CONTROLLABLE discriminator left: in long games CC OUT-FORAGES us ~2:1 (pickups 1.8 vs 3.3) →
+    forage harder/earlier in long games is the candidate v68 lever (small gains expected; per #10,
+    resource play + multi-hit are the only proven CC levers). No single >0.8 controllable root cause;
+    78% is honest structural variance.
 
 **Navigation & spacing (diagnosed 2026-06-03 from 3 CC losses ab817b1d/09116e4c/386640a0; v65/66/67 — mechanism findings PROVEN, and WR now CONFIRMED live: v67/sv118 = 90% vs CC, see #13)**
 14. **Reef-blind nav is a hidden execution-layer bug.** Mirror forage/converge moved via raw
