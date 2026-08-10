@@ -32,7 +32,7 @@ The autonomous system matched the hand-crafted bot's ELO in under 1,000 matches 
 
 1. **Watch replays.** After a version lost, the developer reviewed match replays — frame by frame, identifying what went wrong.
 2. **Analyze the pattern.** Was it a positioning issue? A fire-timing issue? A zone problem? A specific opponent counter?
-3. **Provide a strategic nudge.** Using [KnowledgeForge](https://internexio.com/knowledgeforge) (KF) for structured analysis and hypothesis generation, then directing the AI to implement a specific change.
+3. **Run KF diagnosis.** [KnowledgeForge](https://github.com/internexio/knowledgeforge) (KF) structured the analysis: a kf-debugger agent reviewed the loss data and generated a root cause hypothesis; a kf-strategist translated that into a concrete fix; a kf-builder implemented it. The developer reviewed and approved before submission.
 4. **Submit and test.** Queue matches, watch results, gate on performance.
 5. **Repeat.** Each version took 1-3 days of elapsed time — waiting for matches, reviewing, iterating.
 
@@ -86,7 +86,7 @@ developer submits                 kf-critic validates
 wait for matches                  auto-submit → wait → repeat
 ```
 
-The pipeline is the same structured reasoning process the developer used — it just runs without a human in the middle.
+The pipeline is the same KnowledgeForge reasoning process the developer used — it just runs without a human in the middle. KF was the analytical layer in both approaches. In the manual bot it assisted; in the autonomous bot it decided.
 
 ### The Statistical Gate
 
@@ -125,6 +125,20 @@ This is the equivalent of a scientist's lab notebook. The manual approach had it
 23 DIAGNOSE cycles. 23 failed hypotheses. Then the debugger found something that had been in the game spec the whole time: melee attacks cost no ammo. The bot's code had conditions that together suppressed melee almost entirely. One condition removed. 10W-0L on the first 10 matches. Five consecutive PROMOTEs followed.
 
 The manual bot had similar moments — discoveries that unlocked step-changes in performance. The difference: the manual bot took months of watching to find them. The autonomous bot found this one in 23 iterations without anyone watching.
+
+---
+
+## KnowledgeForge
+
+[KnowledgeForge](https://github.com/internexio/knowledgeforge) (KF) is the structured multi-agent reasoning framework that powered both sides of this project.
+
+In the **manual bot**, KF assisted the developer at each iteration cycle: a kf-debugger analyzed loss patterns and proposed a root cause, a kf-strategist designed the fix, a kf-builder wrote the code. The developer reviewed, approved, and submitted. KF handled the analysis; the human provided judgment and direction.
+
+In the **autonomous bot**, the same pipeline ran without the human step. The developer's role — reviewing hypotheses, approving fixes, deciding when to submit — was replaced by additional KF agents (kf-critic) and a statistical gate (Wilson CI). KF went from assistant to decision-maker.
+
+The 12× improvement in iterations-to-parity came from removing the human bottleneck from a process that KF was already running.
+
+> KnowledgeForge is open source: [github.com/internexio/knowledgeforge](https://github.com/internexio/knowledgeforge)
 
 ---
 
@@ -171,6 +185,8 @@ For the autonomous self-improving version, see [clawberbot-auto](https://github.
 The manual bot demonstrates what human-in-the-loop AI-assisted development looks like at competitive scale: structured analysis tools, careful measurement, one change at a time.
 
 The autonomous bot demonstrates that the bottleneck in that process — the human forming and remembering hypotheses — can be replaced by a pipeline that does it more consistently, if not always more cleverly.
+
+KnowledgeForge was the constant. What changed was whether a human sat between its stages.
 
 The two repos together show the gap: 12,000 matches and four months vs. under 1,000 matches and two weeks to reach the same performance level.
 
