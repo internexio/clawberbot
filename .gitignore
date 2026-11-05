@@ -7,6 +7,8 @@ logs/
 .dolt/
 *.db
 .beads-credential-key
+# bd backup state; holds a machine-specific absolute path
+.beads/dolt-backup.json
 data/
 __pycache__/
 *.pyc
